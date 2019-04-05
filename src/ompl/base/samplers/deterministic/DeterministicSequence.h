@@ -37,6 +37,8 @@
 #ifndef OMPL_BASE_DETERMINISTIC_SEQUENCE
 #define OMPL_BASE_DETERMINISTIC_SEQUENCE
 
+#include <vector>
+
 namespace ompl
 {
     namespace base
@@ -48,6 +50,9 @@ namespace ompl
             /** \brief Constructor */
             DeterministicSequence(unsigned int dimensions)
               : dimensions_(dimensions) {}
+
+            /** \brief Returns the next sample in the interval [0,1] */
+            virtual std::vector<double> sample() =0;
 
             const unsigned int dimensions_;
         };

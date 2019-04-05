@@ -39,8 +39,6 @@
 
 #include "ompl/base/samplers/deterministic/DeterministicSequence.h"
 
-#include<vector>
-
 namespace ompl
 {
     namespace base
@@ -83,7 +81,7 @@ namespace ompl
             HaltonSequence(unsigned int dimensions, std::vector<unsigned int> bases);
 
             /** \brief Returns the next sample in the interval [0,1] */
-            std::vector<double> sample();
+            std::vector<double> sample() override;
 
         private:
             std::vector<HaltonSequence1D> halton_sequences_1d_;
