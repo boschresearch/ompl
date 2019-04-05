@@ -47,9 +47,9 @@ namespace ompl
         public:
             /** \brief Constructor */
             DeterministicSequence(unsigned int dimensions)
-              : dimensions(dimensions) {}
+              : dimensions_(dimensions) {}
 
-            const unsigned int dimensions;
+            const unsigned int dimensions_;
         };
     }
 }
