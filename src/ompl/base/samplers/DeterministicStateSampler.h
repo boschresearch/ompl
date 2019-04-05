@@ -37,7 +37,11 @@
 #ifndef OMPL_BASE_DETERMINISTIC_STATE_SAMPLER_
 #define OMPL_BASE_DETERMINISTIC_STATE_SAMPLER_
 
+#include "ompl/base/StateSpace.h"
 #include "ompl/base/StateSampler.h"
+#include "ompl/base/samplers/deterministic/DeterministicSequence.h"
+
+#include<memory>
 
 namespace ompl
 {
@@ -48,26 +52,32 @@ namespace ompl
         class DeterministicStateSampler : public StateSampler
         {
         public:
-            enum DeterministicSamplerType { HALTON, HAMMERSLEY};
+            enum DeterministicSamplerType { HALTON };
 
-            /** \brief Constructor */
-            DeterministicStateSampler(const StateSpace *space, DeterministicSamplerType type=DeterministicSamplerType::HALTON) : StateSampler(space)
-            {
-            }
+            /** \brief Constructor, which creates the sequence internally based on the specified sequence type.
+            Uses the default constructor for the sequence.*/
+            DeterministicStateSampler(const StateSpace *space, DeterministicSamplerType type=DeterministicSamplerType::HALTON);
+            /** \brief Constructor that takes a pointer to a DeterministicSequence and uses that object instead
+            of its own. This can be used to apply non default options to the deterministic sequence.*/
+            DeterministicStateSampler(const StateSpace *space, std::shared_ptr<DeterministicSequence> sequence_ptr);
 
-            void sampleUniform(State *state) override;
-            void sampleUniformNear(State *state, const State *near, double distance) override;
-            void sampleGaussian(State *state, const State *mean, double stdDev) override;
+            void sampleUniform(State *state) override =0;
+            void sampleUniformNear(State *state, const State *near, double distance) override =0;
+            void sampleGaussian(State *state, const State *mean, double stdDev) override =0;
+        protected:
+            std::shared_ptr<DeterministicSequence> sequence_ptr_;
         };
 
         /** \brief Deterministic state space sampler for SO(2) */
         class SO2DeterministicStateSampler : public DeterministicStateSampler
         {
         public:
-            /** \brief Constructor */
-            SO2DeterministicStateSampler(const StateSpace *space, DeterministicSamplerType type=DeterministicSamplerType::HALTON) : DeterministicStateSampler(space)
-            {
-            }
+            /** \brief Constructor, which creates the sequence internally based on the specified sequence type.
+            Uses the default constructor for the sequence.*/
+            SO2DeterministicStateSampler(const StateSpace *space, DeterministicSamplerType type=DeterministicSamplerType::HALTON) : DeterministicStateSampler(space, type) { }
+            /** \brief Constructor that takes a pointer to a DeterministicSequence and uses that object instead
+            of its own. This can be used to apply non default options to the deterministic sequence.*/
+            SO2DeterministicStateSampler(const StateSpace *space, std::shared_ptr<DeterministicSequence> sequence_ptr) : DeterministicStateSampler(space, sequence_ptr) { }
 
             void sampleUniform(State *state) override;
             void sampleUniformNear(State *state, const State *near, double distance) override;
@@ -78,10 +88,12 @@ namespace ompl
         class RealVectorDeterministicStateSampler : public DeterministicStateSampler
         {
         public:
-            /** \brief Constructor */
-            RealVectorDeterministicStateSampler(const StateSpace *space, DeterministicSamplerType type=DeterministicSamplerType::HALTON) : DeterministicStateSampler(space)
-            {
-            }
+            /** \brief Constructor, which creates the sequence internally based on the specified sequence type.
+            Uses the default constructor for the sequence.*/
+            RealVectorDeterministicStateSampler(const StateSpace *space, DeterministicSamplerType type=DeterministicSamplerType::HALTON) : DeterministicStateSampler(space, type) { }
+            /** \brief Constructor that takes a pointer to a DeterministicSequence and uses that object instead
+            of its own. This can be used to apply non default options to the deterministic sequence.*/
+            RealVectorDeterministicStateSampler(const StateSpace *space, std::shared_ptr<DeterministicSequence> sequence_ptr) : DeterministicStateSampler(space, sequence_ptr) { }
 
             void sampleUniform(State *state) override;
             void sampleUniformNear(State *state, const State *near, double distance) override;
