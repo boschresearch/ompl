@@ -484,14 +484,16 @@ void ompl::geometric::PRM::constructRoadmap(const base::PlannerTerminationCondit
     {
         // maintain a 2:1 ratio for growing/expansion of roadmap
         // call growRoadmap() twice as long for every call of expandRoadmap()
-        if (grow)
+        if (grow || !expansionEnabled_)
             growRoadmap(base::plannerOrTerminationCondition(
                             ptc, base::timedPlannerTerminationCondition(2.0 * magic::ROADMAP_BUILD_TIME)),
                         xstates[0]);
-        else
-            expandRoadmap(base::plannerOrTerminationCondition(
-                              ptc, base::timedPlannerTerminationCondition(magic::ROADMAP_BUILD_TIME)),
-                          xstates);
+        else {
+          // set time to 0 to make planner fully deterministic when deterministic sampler is used
+          expandRoadmap(base::plannerOrTerminationCondition(
+            ptc, base::timedPlannerTerminationCondition(1*magic::ROADMAP_BUILD_TIME)),
+            xstates);
+        }
         grow = !grow;
     }
 

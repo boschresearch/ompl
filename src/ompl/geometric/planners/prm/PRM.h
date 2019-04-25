@@ -241,6 +241,14 @@ namespace ompl
 
             void clear() override;
 
+
+            /** \brief Attempt to connect disjoint components in the roadmap
+                using random bouncing motions (the PRM expansion step) until the
+                given condition evaluates true. */
+            void setExpansionStrategy(bool e) {
+                expansionEnabled_ = e;
+            }
+
             /** \brief Set a different nearest neighbors datastructure */
             template <template <typename T> class NN>
             void setNearestNeighbors()
@@ -399,6 +407,9 @@ namespace ompl
 
             /** \brief Function that can reject a milestone connection */
             ConnectionFilter connectionFilter_;
+
+            /** \brief Flag indicating whether to perform expansion step or only grow step */
+            bool expansionEnabled_{true};
 
             /** \brief Flag indicating whether the employed connection strategy was set by the user (or defaults are
              * assumed) */
