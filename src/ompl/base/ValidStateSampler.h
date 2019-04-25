@@ -104,6 +104,13 @@ namespace ompl
                 return attempts_;
             }
 
+            /** \brief Get the number of attempts during the previous call to sample.
+                Only supported by UniformValidStateSampler so far. */
+            unsigned int getLastNrAttempts() const
+            {
+                return lastAttempts_;
+            }
+
             /** \brief Get the parameters for the valid state sampler */
             ParamSet &params()
             {
@@ -122,6 +129,9 @@ namespace ompl
 
             /** \brief Number of attempts to find a valid sample */
             unsigned int attempts_;
+
+            /** \brief Number of attempts to find a valid sample */
+            unsigned int lastAttempts_;
 
             /** \brief The name of the sampler */
             std::string name_;

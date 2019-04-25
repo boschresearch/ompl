@@ -295,19 +295,31 @@ void ompl::geometric::PRM::growRoadmap(const base::PlannerTerminationCondition &
 void ompl::geometric::PRM::growRoadmap(const base::PlannerTerminationCondition &ptc, base::State *workState)
 {
     /* grow roadmap in the regular fashion -- sample valid states, add them to the roadmap, add valid connections */
-    while (!ptc)
+    while (!ptc && remainingSamples_ != 0)
     {
         iterations_++;
         // search for a valid state
         bool found = false;
-        while (!found && !ptc)
+        while (!found && !ptc && remainingSamples_ != 0)
         {
             unsigned int attempts = 0;
             do
             {
-                found = sampler_->sample(workState);
+                if(remainingSamples_ == -1) {
+                  found = sampler_->sample(workState);
+                }
+                else {
+                  sampler_->setNrAttempts(remainingSamples_);
+                  found = sampler_->sample(workState);
+                  remainingSamples_ -= sampler_->getLastNrAttempts();
+                  /* although this should not happen, just to make sure we don't get to
+                     the special case of remainingSamples_ == -1, which means infinite samples.*/
+                  if(remainingSamples_ < 0) {
+                    remainingSamples_ = 0;
+                  }
+                }
                 attempts++;
-            } while (attempts < magic::FIND_VALID_STATE_ATTEMPTS_WITHOUT_TERMINATION_CHECK && !found);
+            } while (attempts < magic::FIND_VALID_STATE_ATTEMPTS_WITHOUT_TERMINATION_CHECK && !found && remainingSamples_ != 0);
         }
         // add it as a milestone
         if (found)

@@ -229,6 +229,10 @@ void ompl::geometric::FMT::sampleFree(const base::PlannerTerminationCondition &p
             nn_->add(motion);
             motion = new Motion(si_);
         }  // If collision free
+
+        if(maxSampleAttempts_ != -1 && sampleAttempts > static_cast<unsigned int>(maxSampleAttempts_)) {
+          break;
+        }
     }      // While nodeCount < numSamples
     si_->freeState(motion->getState());
     delete motion;
