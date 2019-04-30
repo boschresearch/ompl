@@ -34,8 +34,8 @@
 
 /* Author: Leonard Bruns */
 
-#ifndef OMPL_BASE_HALTON_SEQUENCE
-#define OMPL_BASE_HALTON_SEQUENCE
+#ifndef OMPL_BASE_PRECOMPUTED_SEQUENCE
+#define OMPL_BASE_PRECOMPUTED_SEQUENCE
 
 #include "ompl/base/samplers/deterministic/DeterministicSequence.h"
 

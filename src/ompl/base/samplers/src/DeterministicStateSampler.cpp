@@ -87,9 +87,16 @@ namespace ompl {
             const unsigned int dim = space_->getDimension();
             const RealVectorBounds &bounds = static_cast<const RealVectorStateSpace *>(space_)->getBounds();
 
-            auto *rstate = static_cast<RealVectorStateSpace::StateType *>(state);
-            for (unsigned int i = 0; i < dim; ++i)
-                rstate->values[i] = bounds.low[i] + sample[i]*(bounds.high[i] - bounds.low[i]);
+            if(stretch_) {
+                auto *rstate = static_cast<RealVectorStateSpace::StateType *>(state);
+                for (unsigned int i = 0; i < dim; ++i)
+                    rstate->values[i] = bounds.low[i] + sample[i]*(bounds.high[i] - bounds.low[i]);
+            }
+            else {
+                auto *rstate = static_cast<RealVectorStateSpace::StateType *>(state);
+                for (unsigned int i = 0; i < dim; ++i)
+                    rstate->values[i] = sample[i];
+            }
         }
 
         void RealVectorDeterministicStateSampler::sampleUniformNear(State *state, const State *near, double distance) {
