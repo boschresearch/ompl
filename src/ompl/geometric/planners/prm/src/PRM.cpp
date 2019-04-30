@@ -295,32 +295,33 @@ void ompl::geometric::PRM::growRoadmap(const base::PlannerTerminationCondition &
 void ompl::geometric::PRM::growRoadmap(const base::PlannerTerminationCondition &ptc, base::State *workState)
 {
     /* grow roadmap in the regular fashion -- sample valid states, add them to the roadmap, add valid connections */
-    while (!ptc && remainingSamples_ != 0)
+    while (!ptc && remainingSampleAttempts_ != 0)
     {
         iterations_++;
         // search for a valid state
         bool found = false;
-        while (!found && !ptc && remainingSamples_ != 0)
+        while (!found && !ptc && remainingSampleAttempts_ != 0)
         {
             unsigned int attempts = 0;
             do
             {
-                if(remainingSamples_ == -1) {
+                if(remainingSampleAttempts_ == -1) {
                   found = sampler_->sample(workState);
                 }
                 else {
-                  sampler_->setNrAttempts(remainingSamples_);
+                  sampler_->setNrAttempts(remainingSampleAttempts_);
                   found = sampler_->sample(workState);
-                  remainingSamples_ -= sampler_->getLastNrAttempts();
+                  remainingSampleAttempts_ -= sampler_->getLastNrAttempts();
                   /* although this should not happen, just to make sure we don't get to
                      the special case of remainingSamples_ == -1, which means infinite samples.*/
-                  if(remainingSamples_ < 0) {
-                    remainingSamples_ = 0;
+                  if(remainingSampleAttempts_ < 0) {
+                    remainingSampleAttempts_ = 0;
                   }
                 }
                 attempts++;
-            } while (attempts < magic::FIND_VALID_STATE_ATTEMPTS_WITHOUT_TERMINATION_CHECK && !found && remainingSamples_ != 0);
+            } while (attempts < magic::FIND_VALID_STATE_ATTEMPTS_WITHOUT_TERMINATION_CHECK && !found && remainingSampleAttempts_ != 0);
         }
+
         // add it as a milestone
         if (found)
             addMilestone(si_->cloneState(workState));
@@ -345,6 +346,9 @@ void ompl::geometric::PRM::checkForSolution(const base::PlannerTerminationCondit
         // Sleep for 1ms
         if (!addedNewSolution_)
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+        if(remainingSampleAttempts_ == 0)
+          break;
     }
 }
 
@@ -444,7 +448,7 @@ ompl::base::PlannerStatus ompl::geometric::PRM::solve(const base::PlannerTermina
     std::thread slnThread([this, &ptc, &sol] { checkForSolution(ptc, sol); });
 
     // construct new planner termination condition that fires when the given ptc is true, or a solution is found
-    base::PlannerTerminationCondition ptcOrSolutionFound([this, &ptc] { return ptc || addedNewSolution(); });
+    base::PlannerTerminationCondition ptcOrSolutionFound([this, &ptc] { return ptc || addedNewSolution() || remainingSampleAttempts_==0; });
 
     constructRoadmap(ptcOrSolutionFound);
 
@@ -492,7 +496,7 @@ void ompl::geometric::PRM::constructRoadmap(const base::PlannerTerminationCondit
     bool grow = true;
 
     bestCost_ = opt_->infiniteCost();
-    while (!ptc())
+    while (!ptc() && remainingSampleAttempts_ != 0)
     {
         // maintain a 2:1 ratio for growing/expansion of roadmap
         // call growRoadmap() twice as long for every call of expandRoadmap()

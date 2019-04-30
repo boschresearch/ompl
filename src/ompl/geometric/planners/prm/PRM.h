@@ -202,8 +202,8 @@ namespace ompl
                        Only used for growRoadmap step, not for expandRoadmap step. Can be used in
                        conjunction with setExpansionStrategy(false) to get a roadmap based on a fixed
                        number of (valid and non-valid) samples. */
-            void setNumSamples(int samples) {
-                remainingSamples_ = samples;
+            void setMaxSampleAttempts(int maxSampleAttempts) {
+                remainingSampleAttempts_ = maxSampleAttempts;
             }
 
             void getPlannerData(base::PlannerData &data) const override;
@@ -420,7 +420,7 @@ namespace ompl
 
             /** \brief Variable to keep track of remaining sample attempts.
                        -1 means infinity. */
-            int remainingSamples_{-1};
+            int remainingSampleAttempts_{-1};
 
             /** \brief Flag indicating whether the employed connection strategy was set by the user (or defaults are
              * assumed) */
