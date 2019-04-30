@@ -99,6 +99,25 @@ namespace ompl
             void sampleUniformNear(State *state, const State *near, double distance) override;
             void sampleGaussian(State *state, const State *mean, double stdDev) override;
         };
+
+        /** \brief Deterministic state sampler for the R<sup>n</sup> state space */
+        class SE2DeterministicStateSampler : public DeterministicStateSampler
+        {
+        public:
+            /** \brief Constructor, which creates the sequence internally based on the specified sequence type.
+            Uses the default constructor for the sequence.*/
+            SE2DeterministicStateSampler(const StateSpace *space, DeterministicSamplerType type=DeterministicSamplerType::HALTON) : DeterministicStateSampler(space, type), stretch_(true) { }
+            /** \brief Constructor that takes a pointer to a DeterministicSequence and uses that object instead
+            of its own. This can be used to apply non default options to the deterministic sequence.*/
+            SE2DeterministicStateSampler(const StateSpace *space, std::shared_ptr<DeterministicSequence> sequence_ptr, bool stretch=false) : DeterministicStateSampler(space, sequence_ptr), stretch_(stretch) { }
+
+            void sampleUniform(State *state) override;
+            void sampleUniformNear(State *state, const State *near, double distance) override;
+            void sampleGaussian(State *state, const State *mean, double stdDev) override;
+
+        private:
+            bool stretch_{false}; // indicates whether the state is samples in [0,1] and should be stretched to the state space boundaries
+        };
     }
 }
 

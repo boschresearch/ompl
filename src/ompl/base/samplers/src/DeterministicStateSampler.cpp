@@ -36,6 +36,7 @@
 
 #include "ompl/base/samplers/DeterministicStateSampler.h"
 #include "ompl/base/samplers/deterministic/HaltonSequence.h"
+#include "ompl/base/spaces/SE2StateSpace.h"
 #include "ompl/base/spaces/SO2StateSpace.h"
 #include "ompl/base/spaces/RealVectorStateSpace.h"
 
@@ -99,6 +100,37 @@ namespace ompl {
         }
 
         void RealVectorDeterministicStateSampler::sampleGaussian(State *state, const State *mean, double stdDev) {
+            (void) state;
+            (void) mean;
+            (void) stdDev;
+            std::cout << "Warning: Deterministic sampler does not support Gaussian sampling." << std::endl;
+        }
+
+        void SE2DeterministicStateSampler::sampleUniform(State *state) {
+            auto sample = sequence_ptr_->sample();
+
+            const RealVectorBounds &bounds = static_cast<const SE2StateSpace *>(space_)->getBounds();
+
+            auto se2_state_ptr = static_cast<SE2StateSpace::StateType *>(state);
+            if(stretch_) {
+                se2_state_ptr->setX(bounds.low[0] + sample[0]*(bounds.high[0] - bounds.low[0]));
+                se2_state_ptr->setY(bounds.low[1] + sample[1]*(bounds.high[1] - bounds.low[1]));
+                se2_state_ptr->setYaw( -boost::math::constants::pi<double>() + sample[2]*2*boost::math::constants::pi<double>() );
+            }
+            else {
+                se2_state_ptr->setXY(sample[0], sample[1]);
+                se2_state_ptr->setYaw(sample[2]);
+            }
+        }
+
+        void SE2DeterministicStateSampler::sampleUniformNear(State *state, const State *near, double distance) {
+            (void) state;
+            (void) near;
+            (void) distance;
+            std::cout << "Warning: Deterministic sampler does not support near sampling." << std::endl;
+        }
+
+        void SE2DeterministicStateSampler::sampleGaussian(State *state, const State *mean, double stdDev) {
             (void) state;
             (void) mean;
             (void) stdDev;
