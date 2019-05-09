@@ -90,6 +90,7 @@ namespace ompl
         }
 
         void PrecomputedSequence::shuffleSamples() {
+            std::srand(0);
             std::random_shuffle(sample_set_.begin(), sample_set_.end());
         }
     }
