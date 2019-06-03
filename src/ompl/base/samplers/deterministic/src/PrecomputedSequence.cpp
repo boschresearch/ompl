@@ -49,7 +49,7 @@ namespace ompl
 {
     namespace base
     {
-        PrecomputedSequence::PrecomputedSequence(std::string path, unsigned int dimensions, bool shuffle, size_t max_samples) :
+        PrecomputedSequence::PrecomputedSequence(std::string path, unsigned int dimensions, bool shuffle, size_t max_samples, double scale_factor) :
             DeterministicSequence(dimensions) {
             readSamplesFromFile(path, dimensions, max_samples);
             if(shuffle)

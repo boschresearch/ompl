@@ -119,15 +119,17 @@ namespace ompl {
             const RealVectorBounds &bounds = static_cast<const SE2StateSpace *>(space_)->getBounds();
 
             auto se2_state_ptr = static_cast<SE2StateSpace::StateType *>(state);
-            if(stretch_) {
+            if(stretch_rv_) {
                 se2_state_ptr->setX(bounds.low[0] + sample[0]*(bounds.high[0] - bounds.low[0]));
                 se2_state_ptr->setY(bounds.low[1] + sample[1]*(bounds.high[1] - bounds.low[1]));
-                se2_state_ptr->setYaw( -boost::math::constants::pi<double>() + sample[2]*2*boost::math::constants::pi<double>() );
             }
-            else {
+            else
                 se2_state_ptr->setXY(sample[0], sample[1]);
+
+            if(stretch_so2_)
+                se2_state_ptr->setYaw( -boost::math::constants::pi<double>() + sample[2]*2*boost::math::constants::pi<double>() );
+            else
                 se2_state_ptr->setYaw(sample[2]);
-            }
         }
 
         void SE2DeterministicStateSampler::sampleUniformNear(State *state, const State *near, double distance) {

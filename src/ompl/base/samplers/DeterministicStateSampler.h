@@ -109,17 +109,18 @@ namespace ompl
         public:
             /** \brief Constructor, which creates the sequence internally based on the specified sequence type.
             Uses the default constructor for the sequence.*/
-            SE2DeterministicStateSampler(const StateSpace *space, DeterministicSamplerType type=DeterministicSamplerType::HALTON) : DeterministicStateSampler(space, type), stretch_(true) { }
+            SE2DeterministicStateSampler(const StateSpace *space, DeterministicSamplerType type=DeterministicSamplerType::HALTON) : DeterministicStateSampler(space, type), stretch_rv_(true), stretch_so2_(true) { }
             /** \brief Constructor that takes a pointer to a DeterministicSequence and uses that object instead
             of its own. This can be used to apply non default options to the deterministic sequence.*/
-            SE2DeterministicStateSampler(const StateSpace *space, std::shared_ptr<DeterministicSequence> sequence_ptr, bool stretch=true) : DeterministicStateSampler(space, sequence_ptr), stretch_(stretch) { }
+            SE2DeterministicStateSampler(const StateSpace *space, std::shared_ptr<DeterministicSequence> sequence_ptr, bool stretch_rv=true, bool stretch_so2=true) : DeterministicStateSampler(space, sequence_ptr), stretch_rv_(stretch_rv), stretch_so2_(stretch_so2) { }
 
             void sampleUniform(State *state) override;
             void sampleUniformNear(State *state, const State *near, double distance) override;
             void sampleGaussian(State *state, const State *mean, double stdDev) override;
 
         private:
-            bool stretch_; // indicates whether the state is samples in [0,1] and should be stretched to the state space boundaries
+            bool stretch_rv_; // indicates whether the xy state is sampled in [0,1] and should be stretched to the state space boundaries
+            bool stretch_so2_; // indicates whether the so2 state is sampled in [0,1] and should be stretched to [-pi;pi]
         };
     }
 }
