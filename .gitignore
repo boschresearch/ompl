@@ -1,5 +1,6 @@
 .registered
 .DS_Store
+.vscode
 *.swp
 build/
 bin/
