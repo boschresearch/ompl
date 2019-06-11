@@ -54,7 +54,7 @@ namespace ompl
             the samples can be randomized (which removes deterministim, if not all samples are used), max_samples
             optionally limits the number of samples to be read from the file (default 0 means all samples are read),
             scale_factor optinonally scales the the samples (if the precomputed samplesets are e.g. in range 0,1. **/
-            PrecomputedSequence(std::string path, unsigned int dimensions, bool shuffle=false, size_t max_samples=0, double scale_factor=1.0);
+            PrecomputedSequence(std::string path, unsigned int dimensions, bool shuffle=false, size_t max_samples=0);
 
             /** \brief Returns the next sample, loops if there are no more precomputed samples. The range
             of the samples depends on the precomputed set of samples. */
