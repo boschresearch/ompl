@@ -41,6 +41,7 @@
 #include "ompl/datastructures/NearestNeighbors.h"
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
+#include "ompl/base/spaces/lattice/LatticeStateSpace.h"
 
 namespace ompl
 {
