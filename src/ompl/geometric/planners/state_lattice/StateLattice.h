@@ -131,12 +131,6 @@ namespace ompl
 
             void setProblemDefinition(const base::ProblemDefinitionPtr &pdef) override;
 
-            /** \brief Clear the query previously loaded from the ProblemDefinition.
-                Subsequent calls to solve() will reuse the previously constructed state lattice,
-                but will clear the set of input states constructed by the previous call to solve().
-                This enables multi-query functionality for StateLattice. */
-            void clearQuery();
-
             /** \brief Set the connection strategy function that specifies the
              milestones that connection attempts will be made to for the start and end vertex.
 
