@@ -36,3 +36,122 @@
 
 #include "ompl/base/spaces/lattice/LatticeStateSpace.h"
 
+namespace ompl 
+{
+    namespace base 
+    {
+        LatticeStateSpace::LatticeStateSpace(const StateSpacePtr &space) : WrapperStateSpace(space)
+        {
+        }
+
+        void LatticeStateSpace::addMotionPrimitive(const MotionPrimitive& motionPrimitive)
+        {
+            motionPrimitives_.push_back(motionPrimitive);
+        }
+
+        void LatticeStateSpace::clearMotionPrimitives()
+        {
+            motionPrimitives_.clear();
+        }
+
+        std::vector<size_t> LatticeStateSpace::getOutPrimitives(const State *state) const {
+            std::vector<size_t> out_ids;
+            
+            size_t current_id = 0;
+            for(const auto& motionPrimitive : motionPrimitives_)
+            {
+                if(primitiveValidator_(state, motionPrimitive))
+                {
+                    out_ids.push_back(current_id);
+                }
+                ++current_id;
+            }
+
+            return out_ids;
+        }
+
+        LatticeStateSpace::MotionPrimitive LatticeStateSpace::transformPrimitive(const State * startState, const MotionPrimitive& motionPrimitive) const
+        {
+            MotionPrimitive transformedPrimitive(motionPrimitive);
+
+            auto transform = transformCalculator_(startState, motionPrimitive);
+
+            for(auto& state : transformedPrimitive.getStates())
+            {
+                transform(state);
+            }
+
+            return motionPrimitive;
+        }
+
+        State* LatticeStateSpace::getEndState(const State* startState, const MotionPrimitive& motionPrimitive) const
+        {
+            auto transform = transformCalculator_(startState, motionPrimitive);
+
+            // for the motion primitives and the states passed around internally, 
+            // we simply use the underlying state type
+            State * endState = space_->allocState();
+
+            transform(endState);
+
+            return endState;
+        }
+
+        void LatticeStateSpace::setTransformCalculator(const std::function<std::function<void(State*)>(const State*, const MotionPrimitive&)>& transformCalculator) 
+        {
+            transformCalculator_ = transformCalculator;
+        }
+
+        void LatticeStateSpace::setPrimitiveValidator(const std::function<bool(const State*, const MotionPrimitive&)>& primitiveValidator)
+        {
+            primitiveValidator_ = primitiveValidator;
+        }
+
+        void LatticeStateSpace::setDefaultPrimitiveValidator()
+        {
+            setPrimitiveValidator(
+                [] (const State *, const MotionPrimitive&) -> bool
+                {
+                    return true;
+                }
+            ); 
+        }
+
+        void LatticeStateSpace::setDefaultPrimitiveInterpolator()
+        {
+            setPrimitiveInterpolator(
+                [] (const State* from, const State* to, double t, const MotionPrimitive& primitive, State* state)
+                {
+                    primitive.getSpaceInformation()->getStateSpace()->interpolate(from, to, t, state);
+                }
+            ); 
+        }
+
+        void LatticeStateSpace::setPrimitiveInterpolator(const std::function<void(const State*, const State*, double, const MotionPrimitive&, State*)>& primitiveInterpolator)
+        {
+            primitiveInterpolator_ = primitiveInterpolator;
+        }
+
+        bool LatticeStateSpace::hasSymmetricInterpolate() const 
+        {
+            // since the interpolate depends on the motion primtiive this is generally not true
+            return false;
+        }
+
+        void LatticeStateSpace::interpolate(const State* from, const State* to, double t, State* state) const
+        {
+            const auto *rfrom = static_cast<const StateType *>(from);
+            const auto *rto = static_cast<const StateType *>(to);
+            StateType *rstate = static_cast<StateType *>(state);
+            int motionPrimitiveIdFrom = rfrom->getPrimitiveId();
+            if(motionPrimitiveIdFrom == -1) // no motion primitive -> interpolate using the underlying space
+            {
+                space_->interpolate(rfrom->getState(), rto->getState(), t, rstate->getState());
+            }
+            else // interpolate on a motion primitive
+            {
+                primitiveInterpolator_(rfrom->getState(), rto->getState(), t, motionPrimitives_[motionPrimitiveIdFrom], rstate->getState());
+            }
+        }
+    }
+}

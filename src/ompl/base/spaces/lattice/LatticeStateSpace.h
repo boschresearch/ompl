@@ -43,8 +43,10 @@
 
 #include <vector>
 
-namespace ompl {
-    namespace base {
+namespace ompl 
+{
+    namespace base 
+    {
         /// @cond IGNORE
         /** \brief Forward declaration of ompl::base::LatticeStateSpace */
         OMPL_CLASS_FORWARD(LatticeStateSpace);
@@ -70,7 +72,9 @@ namespace ompl {
             {
             public:
                 /** \brief Constructor. Takes a reference \a state to the underlying state. */
-                StateType(State *state, int primitiveId) : state_(state), primitiveId_(primitiveId)
+                StateType(State *state, int primitiveId) : 
+                    state_(state), 
+                    primitiveId_(primitiveId)
                 {
                 }
 
@@ -86,6 +90,11 @@ namespace ompl {
                     return state_;
                 }
 
+                int getPrimitiveId() const
+                {
+                    return primitiveId_;
+                }
+
             protected:
                 /** \brief Underlying state. */
                 State *state_;
@@ -95,34 +104,44 @@ namespace ompl {
             };
 
             /** \brief Constructor. The underlying state space has to be defined. */
-            LatticeStateSpace(const StateSpacePtr &space) : WrapperStateSpace(space)
-            {
-            }
+            LatticeStateSpace(const StateSpacePtr &space);
 
             /** \brief Add a motion primitive to the state space. */
-            void addMotionPrimitive(MotionPrimitive motionPrimitive);
+            void addMotionPrimitive(const MotionPrimitive& motionPrimitive);
+
+            /** \brief Remove all motion primitives added so far. */
+            void clearMotionPrimitives();
 
             /** \brief Returns the outgoing motion primitive ids of a given state. */
-            std::vector<size_t> getOutPrimitives(State *state) const;
+            std::vector<size_t> getOutPrimitives(const State *state) const;
 
             /** \brief Transforms a motion primitive to start at a given state. */
-            MotionPrimitive transformPrimitive(State * startState, const MotionPrimitive& motionPrimitive) const;
+            MotionPrimitive transformPrimitive(const State * startState, const MotionPrimitive& motionPrimitive) const;
 
             /** \brief Returns the end state given a motion primitive and a given start state. */
-            State* getEndState(State* startState, const MotionPrimitive& motionPrimitive) const;
+            State* getEndState(const State* startState, const MotionPrimitive& motionPrimitive) const;
 
             /** \brief Sets the transform calculator function */
-            void setTransformCalculator(const std::function<std::function<State*(State*)>(State*, const MotionPrimitive&)>& transformCalculator);
+            void setTransformCalculator(const std::function<std::function<void (State*)>(const State*, const MotionPrimitive&)>& transformCalculator);
 
             /** \brief Sets the primitive validator function */
-            void setPrimitiveValidator(const std::function<bool(State*, const MotionPrimitive&)>& primitiveValidator);
+            void setPrimitiveValidator(const std::function<bool(const State*, const MotionPrimitive&)>& primitiveValidator);
 
             /** \brief Sets a primitive validator that always returns true. For this to work the transformCalculator must be
              * able to transform all primitives to all possible start states.
              */
             void setDefaultPrimitiveValidator();
 
+            /** \brief Sets a primitive interpolator as the default interpolate function defined by the underlying state space
+             * of the motion primitives.
+             */
+            void setDefaultPrimitiveInterpolator();
+
+            void setPrimitiveInterpolator(const std::function<void(const State*, const State*, double, const MotionPrimitive&, State*)>& primitiveInterpolator);
+
             void interpolate(const State* from, const State* to, double t, State* state) const override;
+
+            bool hasSymmetricInterpolate() const override;
         protected:
             /** \brief Motion primitives this space includes for lattice planning. */
             std::vector<MotionPrimitive> motionPrimitives_;
@@ -130,11 +149,14 @@ namespace ompl {
             /** \brief Given a starting state and motion primitive, this function returns a function that transforms
              * a state on the primitive such that the starting state aligns with the starting state of the motion primitive.
              * Note that State* is a pointer to the underlying state type not to LatticeStateSpace type. */
-            std::function<std::function<State*(State*)>(State*, const MotionPrimitive&)> transformCalculator_;
+            std::function<std::function<void(State*)>(const State*, const MotionPrimitive&)> transformCalculator_;
 
             /** \brief Given a starting state and a motion primitive, this function returns whether the motion primitive 
              * can be transformed to align with it. */
-            std::function<bool(State*, const MotionPrimitive&)> primitiveValidator_;
+            std::function<bool(const State*, const MotionPrimitive&)> primitiveValidator_;
+
+            /** \brief Given a ratio in [0,1] this function sets state to the state at the ratio along the motion primtive. */
+            std::function<void(const State*, const State*, double, const MotionPrimitive&, State*)> primitiveInterpolator_;
         };
     }
 }
