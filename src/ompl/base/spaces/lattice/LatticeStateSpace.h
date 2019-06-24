@@ -84,7 +84,7 @@ namespace ompl
                     return state_;
                 }
 
-                /** \brief Get a pointer to the underlying state. */
+                /** \brief Get a pointer to the underlying state.*/
                 State *getState()
                 {
                     return state_;
@@ -99,7 +99,7 @@ namespace ompl
                 /** \brief Underlying state. */
                 State *state_;
 
-                /** \brief Id of the motion primitive this state is part of. */
+                /** \brief Id of the motion primitive this state is part of. -1 if it is not part of any motion primitive. */
                 int primitiveId_;
             };
 
@@ -142,6 +142,11 @@ namespace ompl
             void interpolate(const State* from, const State* to, double t, State* state) const override;
 
             bool hasSymmetricInterpolate() const override;
+
+            double distance(const State *state1, const State *state2) const override
+            {
+                return space_->distance(state1->as<StateType>()->getState(), state2->as<StateType>()->getState());
+            }
         protected:
             /** \brief Motion primitives this space includes for lattice planning. */
             std::vector<MotionPrimitive> motionPrimitives_;

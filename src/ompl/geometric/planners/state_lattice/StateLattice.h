@@ -37,11 +37,16 @@
 #ifndef OMPL_GEOMETRIC_PLANNERS_STATE_LATTICE_STATE_LATTICE
 #define OMPL_GEOMETRIC_PLANNERS_STATE_LATTICE_STATE_LATTICE
 
+// OMPL
 #include <ompl/geometric/planners/PlannerIncludes.h>
 #include "ompl/datastructures/NearestNeighbors.h"
+#include "ompl/base/spaces/lattice/LatticeStateSpace.h"
+
+// Boost
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
-#include "ompl/base/spaces/lattice/LatticeStateSpace.h"
+
+// STL
 
 namespace ompl
 {
@@ -115,13 +120,6 @@ namespace ompl
 
             /** @brief The type for an edge in the roadmap. */
             using Edge = boost::graph_traits<Graph>::edge_descriptor;
-
-            /** @brief A nearest neighbors data structure for roadmap vertices. */
-            using RoadmapNeighbors = std::shared_ptr<NearestNeighbors<Vertex> >;
-
-            /** @brief A function returning the milestones of the lattice the start and end 
-             * vertices should be attempted to connect to. */
-            using ConnectionStrategy = std::function<const std::vector<Vertex> &(const Vertex)>;
             
 
             /** \brief Constructor */
@@ -130,46 +128,6 @@ namespace ompl
             ~StateLattice() override;
 
             void setProblemDefinition(const base::ProblemDefinitionPtr &pdef) override;
-
-            /** \brief Set the connection strategy function that specifies the
-             milestones that connection attempts will be made to for the start and end vertex.
-
-             \par Since this is only used for two vertices a very liberal connection strategy,
-             i.e. one that tries to connect to many vertices seems reasonable.
-
-             \param pdef A function that takes a milestone as an argument and
-             returns a collection of other milestones to which a connection
-             attempt must be made. The default connection strategy is to connect
-             a milestone's 10 closest neighbors.
-             */
-            void setConnectionStrategy(const ConnectionStrategy &connectionStrategy)
-            {
-                connectionStrategy_ = connectionStrategy;
-                userSetConnectionStrategy_ = true;
-            }
-            /** Set default strategy for connecting start and end */
-            void setDefaultConnectionStrategy();
-
-
-            /** \brief Set a different nearest neighbors datastructure */
-            template <template <typename T> class NN>
-            void setNearestNeighbors()
-            {
-                if (nn_ && nn_->size() == 0)
-                    OMPL_WARN("Calling setNearestNeighbors will clear all states.");
-                clear();
-                nn_ = std::make_shared<NN<Vertex>>();
-                if (!userSetConnectionStrategy_)
-                    setDefaultConnectionStrategy();
-                if (isSetup())
-                    setup();
-            }
-
-            /** \brief Convenience function that sets the connection strategy to the
-             default one with k nearest neighbors.
-             */
-            void setMaxNearestNeighbors(unsigned int k);
-
 
             /** \brief Return the number of milestones currently in the graph */
             unsigned long int milestoneCount() const
@@ -208,31 +166,36 @@ namespace ompl
             /** \brief Free all the memory allocated by the planner */
             void freeMemory();
 
-            /** \brief Expands a milestone by following all fitting motion primitives from that state
-             * and connect it to the roadmap accordingly to the motion primitive.
-            */
-            Vertex expandMilestone(base::State *state);
+            /** \brief Expand a vertex by following all fitting motion primitives from that state
+             * and connect it to the roadmap according to the motion primitive.
+             */
+            Vertex expandVertex(base::State *state);
 
-            /** \brief Given two milestones construct a path connecting them and set it as the solution */
-            ompl::base::PathPtr constructSolution(const Vertex &start, const Vertex &goal);
+            /** \brief Given two vertices construct a path connecting them */
+            ompl::base::PathPtr constructSolution(const base::PlannerTerminationCondition &ptc, const Vertex &start, const Vertex &goal);
 
-            /** \brief Function that returns the milestones to attempt connections with */
-            ConnectionStrategy connectionStrategy_;
+            /** \brief Given an underlying state, create a vertex connected to the state lattice. */
+            Vertex addNonLatticeVertex(base::State *state);
 
-            /** \brief Flag indicating whether the employed connection strategy was set by the user (or defaults are
-             * assumed) */
-            bool userSetConnectionStrategy_{false};
+            /** \brief Build a state lattice based on the motion primitives and store it in g_ */
+            void buildLattice();
 
-            /** \brief Nearest neighbors data structure */
-            RoadmapNeighbors nn_;
+            /** \brief Add start and goal vertices to the lattice graph */
+            bool addStartAndGoalVertices();
+
+            /** @brief A nearest neighbors data structure for vertices. */
+            std::shared_ptr<NearestNeighbors<Vertex> > nn_;
 
             /** \brief Connectivity graph */
             Graph g_;
 
-            /** \brief Array of start milestones */
+            /** \brief Graph of the full lattice */
+            Graph g_full_lattice_;
+
+            /** \brief Array of start vertices */
             std::vector<Vertex> startM_;
 
-            /** \brief Array of goal milestones */
+            /** \brief Array of goal vertices */
             std::vector<Vertex> goalM_;
 
             /** \brief Access to the internal index at vertex */
@@ -252,6 +215,19 @@ namespace ompl
 
             /** \brief Access the motion primitive of an edge */
             boost::property_map<Graph, edge_primitive_t>::type edgePrimitiveProperty_;
+
+            /** \brief Objective cost function for graph edges */
+            base::OptimizationObjectivePtr opt_;
+
+            /** \brief Number of nearest neighbors used for connecting start and end
+             * vertices to the lattice.
+             */
+            std::size_t nearest_k_{10}; // TODO add support for nearest_r_ and setting nearest_k_ to different values
+
+            /** \brief Flag to check whether a lattice has already been built */
+            bool lattice_built_{false};
+
+            base::LatticeStateSpacePtr lssPtr_{nullptr};
         };
     }
 }
