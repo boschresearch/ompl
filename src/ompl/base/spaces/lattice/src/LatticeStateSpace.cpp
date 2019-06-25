@@ -44,6 +44,11 @@ namespace ompl
         {
         }
 
+        State *LatticeStateSpace::allocState() const 
+        {
+            return new StateType(space_->allocState(), -1);
+        }
+
         void LatticeStateSpace::addMotionPrimitive(const MotionPrimitive& motionPrimitive)
         {
             motionPrimitives_.push_back(motionPrimitive);
@@ -84,9 +89,9 @@ namespace ompl
             return motionPrimitive;
         }
 
-        State* LatticeStateSpace::getEndState(const State* startState, const MotionPrimitive& motionPrimitive) const
+        State* LatticeStateSpace::getEndState(const State* startState, size_t primitiveId) const
         {
-            auto transform = transformCalculator_(startState, motionPrimitive);
+            auto transform = transformCalculator_(startState, motionPrimitives_[primitiveId]);
 
             // for the motion primitives and the states passed around internally, 
             // we simply use the underlying state type
@@ -152,6 +157,26 @@ namespace ompl
             {
                 primitiveInterpolator_(rfrom->getState(), rto->getState(), t, motionPrimitives_[motionPrimitiveIdFrom], rstate->getState());
             }
+        }
+
+        void LatticeStateSpace::setInitialState(State *state)
+        {
+            initialState_ = state;
+        }
+
+        const State *LatticeStateSpace::getInitialState() const
+        {
+            return initialState_;
+        }
+
+        base::Cost LatticeStateSpace::getMotionPrimitiveCost(size_t primitive) const
+        {
+            return base::Cost(motionPrimitives_[primitive].length());
+        }
+
+        base::Cost LatticeStateSpace::costHeuristic(State *from, State *to) const
+        {
+            return costHeuristic_(from, to);
         }
     }
 }

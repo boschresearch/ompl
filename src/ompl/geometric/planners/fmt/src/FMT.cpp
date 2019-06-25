@@ -412,7 +412,7 @@ ompl::base::PlannerStatus ompl::geometric::FMT::solve(const base::PlannerTermina
                 //
                 // Our cost caches only increase in size, so they're only
                 // resized if they can't fit the current neighborhood
-                if (costs.size() < yNear.size())
+                if ( costs.size() < yNear.size() )
                 {
                     costs.resize(yNear.size());
                     incCosts.resize(yNear.size());

@@ -35,13 +35,17 @@
 /* Authors: Leonard Bruns */
 
 #include "ompl/geometric/planners/state_lattice/StateLattice.h"
+#include "ompl/geometric/planners/prm/src/GoalVisitor.hpp"
 #include "ompl/base/goals/GoalSampleableRegion.h"
 #include "ompl/base/objectives/PathLengthOptimizationObjective.h"
+#include "ompl/base/State.h"
 #include "ompl/tools/config/SelfConfig.h"
 #include "ompl/util/Console.h"
 
 // BGL
 #include "boost/graph/copy.hpp"
+#include <boost/graph/astar_search.hpp>
+#include <boost/graph/lookup_edge.hpp>
 
 // STL
 #include <memory>
@@ -191,7 +195,7 @@ namespace ompl {
             {
                 const base::State *st = goalM_.empty() ? pis_.nextGoal(ptc) : pis_.nextGoal();
                 if (st != nullptr)
-                    goalM_.push_back(addNonLatticeVertex(si_->cloneState(st)));
+                    goalM_.push_back(addNonLatticeVertex(si_->cloneState(st), true)); // true indicates end direction
 
                 if (goalM_.empty())
                 {
@@ -258,22 +262,6 @@ namespace ompl {
             return base::PlannerStatus::EXACT_SOLUTION;
         }
 
-        void StateLattice::buildLattice()
-        {
-            OMPL_INFORM("%s: Creating lazy lattice");
-            lattice_built_ = true;
-
-            // store the full lattice in case we want to plan in the same statespace, but with a different map
-            boost::copy_graph(g_, g_full_lattice_);
-
-            // TODO: add store lattice to file support
-        }
-
-        void StateLattice::addNonLatticeVertex(base::State *state)
-        {
-
-        }
-
         void StateLattice::freeMemory()
         {
             for (auto& vertex : boost::make_iterator_range(boost::vertices(g_))) 
@@ -283,14 +271,211 @@ namespace ompl {
             g_.clear();
         }
 
-        StateLattice::Vertex StateLattice::expandVertex(base::State *state)
+        void StateLattice::buildLattice()
         {
+            OMPL_INFORM("%s: Creating lazy lattice");
+            lattice_built_ = true;
 
+            Vertex v = boost::add_vertex(g_);
+            vertexStateProperty_[v] = lssPtr_->cloneState(lssPtr_->getInitialState()); // TODO initial state handling
+            vertexValidityProperty_[v] = VALIDITY_UNKNOWN;
+            nn_->add(v);
+
+            std::vector<Vertex> toBeExpanded;
+            std::map<Vertex, bool> expanded;
+            // std::map<base::State*, Vertex, std::function<bool(const base::State*, const base::State*)>> stateToVertexMap(lssPtr_->getStateLessFunction());
+            toBeExpanded.push_back(v);
+
+            while ( boost::num_vertices(g_) < maxVertices_ && toBeExpanded.size() != 0 ) 
+            {
+                Vertex curVertex = toBeExpanded.back();
+                auto curState = vertexStateProperty_[curVertex];
+                toBeExpanded.pop_back();
+                expanded[curVertex] = true;
+
+                std::vector<size_t> outPrimitives = lssPtr_->getOutPrimitives(vertexStateProperty_[curVertex]);
+
+                for( const size_t primitive : outPrimitives)
+                {
+                    Vertex endVertex = boost::add_vertex(g_);
+                    auto endState = lssPtr_->getEndState(curState, primitive);
+                    vertexStateProperty_[endVertex] = endState; 
+                    vertexValidityProperty_[endVertex] = VALIDITY_UNKNOWN; 
+                    
+                    auto edge = boost::add_edge(curVertex, endVertex, g_);
+                    edgeValidityProperty_[edge.first] = VALIDITY_UNKNOWN;
+
+                    // TODO: different options to handle motion primitive cost, precomputed, based on opt_, based on motion primitive length, ...?
+                    edgeWeightProperty_[edge.first] = lssPtr_->getMotionPrimitiveCost(primitive);
+                    edgePrimitiveProperty_[edge.first] = primitive;
+
+                    // if ( stateToVertexMap.find( lssPtr->stateToIdentifier() ) != stateToVertexMap.end())
+                    // {
+                    //     v = boost::add_vertex(g_);
+                    // }
+
+                    // // check if vertex is already part of the graph
+                    // nn_->nearest(candidate);
+
+                    // si_->freeState(endState);
+                    // if( expanded.find() != expanded.end() )
+                    // {
+                    //     nn_->add(candidate);
+                    // }
+                }
+            }
+
+            // store the full lattice in case we want to plan in the same statespace, but with a different map
+            // boost::copy_graph(g_, g_full_lattice_);
+
+            // TODO: add store lattice to file support
+        }
+
+        StateLattice::Vertex StateLattice::addNonLatticeVertex(base::State *state, bool end)
+        {
+            // first create the vertex and add all properties
+            Vertex v = boost::add_vertex(g_);
+            vertexStateProperty_[v] = state; 
+            vertexValidityProperty_[v] = VALIDITY_UNKNOWN; 
+            std::vector<Vertex> neighbors;
+            nn_->nearestK(v, nearestK_, neighbors);
+
+            for(const auto& neighbor : neighbors)
+            {
+                // const base::Cost weight = 
+                if(end) 
+                {
+                    auto edge = boost::add_edge(v, neighbor, g_);
+                    edgeValidityProperty_[edge.first] = VALIDITY_UNKNOWN;
+                    edgeWeightProperty_[edge.first] = opt_->motionCost(vertexStateProperty_[v], vertexStateProperty_[neighbor]);
+                    edgePrimitiveProperty_[edge.first] = -1;
+                }
+                else 
+                {
+                    auto edge = boost::add_edge(neighbor, v, g_);
+                    edgeValidityProperty_[edge.first] = VALIDITY_UNKNOWN;
+                    edgeWeightProperty_[edge.first] = opt_->motionCost(vertexStateProperty_[neighbor], vertexStateProperty_[v]);
+                    edgePrimitiveProperty_[edge.first] = -1;
+                }
+            }
+
+            nn_->add(v);
+
+            return v;
         }
 
         ompl::base::PathPtr StateLattice::constructSolution(const base::PlannerTerminationCondition &ptc, const Vertex &start, const Vertex &goal)
         {
+            // Need to update the index map here, becuse nodes may have been removed and
+            // the numbering will not be 0 .. N-1 otherwise.
+            unsigned long int index = 0;
+            boost::graph_traits<Graph>::vertex_iterator vi, vend;
+            for (boost::tie(vi, vend) = boost::vertices(g_); vi != vend; ++vi, ++index)
+                vertexIndexProperty_[*vi] = index;
 
+            boost::property_map<Graph, boost::vertex_predecessor_t>::type prev;
+            try
+            {
+                // Consider using a persistent distance_map if it's slow
+                boost::astar_search(g_, start,
+                                    [this, goal](Vertex v)
+                                    {
+                                        return lssPtr_->costHeuristic(vertexStateProperty_[v], vertexStateProperty_[goal]);
+                                    },
+                                    boost::predecessor_map(prev)
+                                        .distance_compare([this](base::Cost c1, base::Cost c2)
+                                                        {
+                                                            return opt_->isCostBetterThan(c1, c2);
+                                                        })
+                                        .distance_combine([this](base::Cost c1, base::Cost c2)
+                                                        {
+                                                            return opt_->combineCosts(c1, c2);
+                                                        })
+                                        .distance_inf(opt_->infiniteCost())
+                                        .distance_zero(opt_->identityCost())
+                                        .visitor(AStarGoalVisitor<Vertex>(goal)));
+            }
+            catch (AStarFoundGoal &)
+            {
+            }
+            if (prev[goal] == goal) // no solution found
+                return nullptr;
+
+            // First, get the solution states without copying them, and check them for validity.
+            // We do all the node validity checks for the vertices, as this may remove a larger
+            // part of the graph (compared to removing an edge).
+            std::vector<const base::State *> states(1, vertexStateProperty_[goal]);
+            std::set<Vertex> verticesToRemove;
+            for (Vertex pos = prev[goal]; prev[pos] != pos; pos = prev[pos])
+            {
+                const base::State *st = vertexStateProperty_[pos];
+                unsigned int &vd = vertexValidityProperty_[pos];
+                if ((vd & VALIDITY_TRUE) == 0)
+                    if (si_->isValid(st))
+                        vd |= VALIDITY_TRUE;
+                if ((vd & VALIDITY_TRUE) == 0)
+                    verticesToRemove.insert(pos);
+                if (verticesToRemove.empty())
+                    states.push_back(st);
+            }
+
+            // We remove *all* invalid vertices.
+            if (!verticesToRemove.empty())
+            {
+                // Remember the current neighbors.
+                std::set<Vertex> neighbors;
+                for (auto it = verticesToRemove.begin(); it != verticesToRemove.end(); ++it)
+                {
+                    boost::graph_traits<Graph>::adjacency_iterator nbh, last;
+                    for (boost::tie(nbh, last) = boost::adjacent_vertices(*it, g_); nbh != last; ++nbh)
+                        if (verticesToRemove.find(*nbh) == verticesToRemove.end())
+                            neighbors.insert(*nbh);
+                    // Remove vertex from nearest neighbors data structure.
+                    nn_->remove(*it);
+                    // Free vertex state.
+                    si_->freeState(vertexStateProperty_[*it]);
+                    // Remove all edges.
+                    boost::clear_vertex(*it, g_);
+                    // Remove the vertex.
+                    boost::remove_vertex(*it, g_);
+                }
+                return base::PathPtr();
+            }
+
+            // start is checked for validity already
+            states.push_back(vertexStateProperty_[start]);
+
+            // Check the edges too, if the vertices were valid. Remove the first invalid edge only.
+            std::vector<const base::State *>::const_iterator prevState = states.begin(), state = prevState + 1;
+            Vertex prevVertex = goal, pos = prev[goal];
+            do
+            {
+                // TODO: how does this handle parallel edges??
+                // check https://stackoverflow.com/questions/21214091/find-multiple-edges-given-2-vertices-in-boost-graph for 
+                // some hints
+
+                Edge e = boost::lookup_edge(pos, prevVertex, g_).first;
+                unsigned int &evd = edgeValidityProperty_[e];
+                if ((evd & VALIDITY_TRUE) == 0)
+                {
+                    if (si_->checkMotion(*state, *prevState))
+                        evd |= VALIDITY_TRUE;
+                }
+                if ((evd & VALIDITY_TRUE) == 0)
+                {
+                    boost::remove_edge(e, g_);
+                    return base::PathPtr();
+                }
+                prevState = state;
+                ++state;
+                prevVertex = pos;
+                pos = prev[pos];
+            } while (prevVertex != pos);
+
+            auto p(std::make_shared<PathGeometric>(si_));
+            for (std::vector<const base::State *>::const_reverse_iterator st = states.rbegin(); st != states.rend(); ++st)
+                p->append(*st);
+            return p;
         }
     }
 }

@@ -88,6 +88,11 @@ namespace ompl
                 using kind = boost::edge_property_tag;
             };
 
+            // cant use using Vertex = boost::graph_traits<Graph>::vertex_descriptor; for predecessor due to circular dependency
+            // exterior property for astar would be better maybe??
+            /** @brief The type for a vertex in the roadmap. */
+            using Vertex = boost::adjacency_list_traits<boost::vecS, boost::listS, boost::directedS>::vertex_descriptor;
+
             /**
              @brief The underlying roadmap graph.
 
@@ -106,17 +111,13 @@ namespace ompl
                 boost::vecS, boost::listS, boost::directedS,
                 boost::property<vertex_state_t, base::State *,
                                 boost::property<boost::vertex_index_t, unsigned long int,
-                                                boost::property<vertex_flags_t, unsigned int>>>,
+                                                boost::property<vertex_flags_t, unsigned int,
+                                                                boost::property<boost::vertex_predecessor_t, Vertex>>>>,
                 boost::property<boost::edge_weight_t, base::Cost, 
                                 boost::property<edge_flags_t, unsigned int,
                                                 boost::property<edge_primitive_t, size_t>>>>;
 
-            // TODO: lazy PRM does:
-            // using Vertex = boost::adjacency_list_traits<boost::vecS, boost::listS, boost::undirectedS>::vertex_descriptor;
-            // why is that?
-
-            /** @brief The type for a vertex in the roadmap. */
-            using Vertex = boost::graph_traits<Graph>::vertex_descriptor;
+            // using Vertex = boost::graph_traits<Graph>::vertex_descriptor;
 
             /** @brief The type for an edge in the roadmap. */
             using Edge = boost::graph_traits<Graph>::edge_descriptor;
@@ -166,16 +167,11 @@ namespace ompl
             /** \brief Free all the memory allocated by the planner */
             void freeMemory();
 
-            /** \brief Expand a vertex by following all fitting motion primitives from that state
-             * and connect it to the roadmap according to the motion primitive.
-             */
-            Vertex expandVertex(base::State *state);
-
             /** \brief Given two vertices construct a path connecting them */
             ompl::base::PathPtr constructSolution(const base::PlannerTerminationCondition &ptc, const Vertex &start, const Vertex &goal);
 
             /** \brief Given an underlying state, create a vertex connected to the state lattice. */
-            Vertex addNonLatticeVertex(base::State *state);
+            Vertex addNonLatticeVertex(base::State *state, bool end=false);
 
             /** \brief Build a state lattice based on the motion primitives and store it in g_ */
             void buildLattice();
@@ -228,6 +224,10 @@ namespace ompl
             bool lattice_built_{false};
 
             base::LatticeStateSpacePtr lssPtr_{nullptr};
+
+            size_t maxVertices_{100000};
+
+            size_t nearestK_{10};
         };
     }
 }

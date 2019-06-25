@@ -68,26 +68,14 @@ namespace ompl
              * of the motion primitive it belongs to. An id of -1 indicates that the state does not
              * belong to any motion primitive.
             */
-            class StateType : public State
+            class StateType : public WrapperStateSpace::StateType
             {
             public:
                 /** \brief Constructor. Takes a reference \a state to the underlying state. */
                 StateType(State *state, int primitiveId) : 
-                    state_(state), 
+                    WrapperStateSpace::StateType(state),
                     primitiveId_(primitiveId)
                 {
-                }
-
-                /** \brief Get a const pointer to the underlying state. */
-                const State *getState() const
-                {
-                    return state_;
-                }
-
-                /** \brief Get a pointer to the underlying state.*/
-                State *getState()
-                {
-                    return state_;
                 }
 
                 int getPrimitiveId() const
@@ -95,16 +83,20 @@ namespace ompl
                     return primitiveId_;
                 }
 
+                void setPrimitiveId(int primitiveId)
+                {
+                    primitiveId_ = primitiveId;
+                }
             protected:
-                /** \brief Underlying state. */
-                State *state_;
-
                 /** \brief Id of the motion primitive this state is part of. -1 if it is not part of any motion primitive. */
                 int primitiveId_;
             };
 
             /** \brief Constructor. The underlying state space has to be defined. */
             LatticeStateSpace(const StateSpacePtr &space);
+
+            /** \brief Allocate a new state in this space. */
+            State *allocState() const override;
 
             /** \brief Add a motion primitive to the state space. */
             void addMotionPrimitive(const MotionPrimitive& motionPrimitive);
@@ -119,7 +111,7 @@ namespace ompl
             MotionPrimitive transformPrimitive(const State * startState, const MotionPrimitive& motionPrimitive) const;
 
             /** \brief Returns the end state given a motion primitive and a given start state. */
-            State* getEndState(const State* startState, const MotionPrimitive& motionPrimitive) const;
+            State* getEndState(const State* startState, size_t primitiveId) const;
 
             /** \brief Sets the transform calculator function */
             void setTransformCalculator(const std::function<std::function<void (State*)>(const State*, const MotionPrimitive&)>& transformCalculator);
@@ -147,6 +139,17 @@ namespace ompl
             {
                 return space_->distance(state1->as<StateType>()->getState(), state2->as<StateType>()->getState());
             }
+
+            const std::function<bool(const base::State*, const base::State*)>& getStateLessFunction();
+
+            void setInitialState(State *state);
+
+            const State *getInitialState() const;
+
+            base::Cost getMotionPrimitiveCost(size_t primitive) const;
+
+            base::Cost costHeuristic(State *from, State *to) const;
+ 
         protected:
             /** \brief Motion primitives this space includes for lattice planning. */
             std::vector<MotionPrimitive> motionPrimitives_;
@@ -157,11 +160,16 @@ namespace ompl
             std::function<std::function<void(State*)>(const State*, const MotionPrimitive&)> transformCalculator_;
 
             /** \brief Given a starting state and a motion primitive, this function returns whether the motion primitive 
-             * can be transformed to align with it. */
+             * can be transformed to align with it.  */
             std::function<bool(const State*, const MotionPrimitive&)> primitiveValidator_;
 
             /** \brief Given a ratio in [0,1] this function sets state to the state at the ratio along the motion primtive. */
-            std::function<void(const State*, const State*, double, const MotionPrimitive&, State*)> primitiveInterpolator_;
+            std::function<void(const State *, const State *, double, const MotionPrimitive&, State *)> primitiveInterpolator_;
+
+            /** \brief Given two state pointers returns a heuristic of the cost. */
+            std::function<base::Cost(State *, State *)> costHeuristic_;
+
+            State* initialState_;
         };
     }
 }
