@@ -95,7 +95,7 @@ namespace ompl
 
             // for the motion primitives and the states passed around internally, 
             // we simply use the underlying state type
-            State * endState = space_->allocState();
+            State * endState = allocState();
 
             transform(endState);
 
