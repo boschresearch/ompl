@@ -161,6 +161,7 @@ namespace ompl
 
         void LatticeStateSpace::setInitialState(State *state)
         {
+            freeState(state);
             initialState_ = state;
         }
 
@@ -168,6 +169,22 @@ namespace ompl
         {
             return initialState_;
         }
+
+
+        void LatticeStateSpace::setDefaultCostHeuristic()
+        {
+            setCostHeuristic(
+                [this] (State *from, State *to)->base::Cost {
+                    return base::Cost(distance(from,to));
+                }
+            );
+        }
+
+        void LatticeStateSpace::setCostHeuristic(const std::function<base::Cost(State *, State *)>& costHeuristic)
+        {
+            costHeuristic_ = costHeuristic;
+        }
+
 
         base::Cost LatticeStateSpace::getMotionPrimitiveCost(size_t primitive) const
         {

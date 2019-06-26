@@ -71,7 +71,7 @@ namespace ompl
             class StateType : public WrapperStateSpace::StateType
             {
             public:
-                /** \brief Constructor. Takes a reference \a state to the underlying state. */
+                /** \brief Constructor. Takes a reference \a state to the underlying state */
                 StateType(State *state, int primitiveId) : 
                     WrapperStateSpace::StateType(state),
                     primitiveId_(primitiveId)
@@ -92,43 +92,44 @@ namespace ompl
                 int primitiveId_;
             };
 
-            /** \brief Constructor. The underlying state space has to be defined. */
+            /** \brief Constructor. The underlying state space has to be defined */
             LatticeStateSpace(const StateSpacePtr &space);
 
-            /** \brief Allocate a new state in this space. */
+            /** \brief Allocate a new state in this space */
             State *allocState() const override;
 
-            /** \brief Add a motion primitive to the state space. */
+            /** \brief Add a motion primitive to the state space */
             void addMotionPrimitive(const MotionPrimitive& motionPrimitive);
 
-            /** \brief Remove all motion primitives added so far. */
+            /** \brief Remove all motion primitives added so far */
             void clearMotionPrimitives();
 
-            /** \brief Returns the outgoing motion primitive ids of a given state. */
+            /** \brief Return the outgoing motion primitive ids of a given state */
             std::vector<size_t> getOutPrimitives(const State *state) const;
 
-            /** \brief Transforms a motion primitive to start at a given state. */
+            /** \brief Transform a motion primitive to start at a given state */
             MotionPrimitive transformPrimitive(const State * startState, const MotionPrimitive& motionPrimitive) const;
 
-            /** \brief Returns the end state given a motion primitive and a given start state. */
+            /** \brief Return the end state given a motion primitive and a given start state */
             State* getEndState(const State* startState, size_t primitiveId) const;
 
-            /** \brief Sets the transform calculator function */
+            /** \brief Set the transform calculator function */
             void setTransformCalculator(const std::function<std::function<void (State*)>(const State*, const MotionPrimitive&)>& transformCalculator);
 
-            /** \brief Sets the primitive validator function */
+            /** \brief Set the primitive validator function */
             void setPrimitiveValidator(const std::function<bool(const State*, const MotionPrimitive&)>& primitiveValidator);
 
-            /** \brief Sets a primitive validator that always returns true. For this to work the transformCalculator must be
+            /** \brief Set a primitive validator that always returns true. For this to work the transformCalculator must be
              * able to transform all primitives to all possible start states.
              */
             void setDefaultPrimitiveValidator();
 
-            /** \brief Sets a primitive interpolator as the default interpolate function defined by the underlying state space
+            /** \brief Set a primitive interpolator as the default interpolate function defined by the underlying state space
              * of the motion primitives.
              */
             void setDefaultPrimitiveInterpolator();
 
+            /** \brief Set the function that interpolates on a motion primitive. */
             void setPrimitiveInterpolator(const std::function<void(const State*, const State*, double, const MotionPrimitive&, State*)>& primitiveInterpolator);
 
             void interpolate(const State* from, const State* to, double t, State* state) const override;
@@ -140,14 +141,24 @@ namespace ompl
                 return space_->distance(state1->as<StateType>()->getState(), state2->as<StateType>()->getState());
             }
 
-            const std::function<bool(const base::State*, const base::State*)>& getStateLessFunction();
-
+            /** \brief Set the initial state to build a state lattice */
             void setInitialState(State *state);
 
+            /** \brief Given the id of motion primitive, return the cost of it */
+            base::Cost getMotionPrimitiveCost(size_t primitive) const;
+            
+            /** \brief Return a pointer to the initial state set by setInitialState. No copy. nullptr if no state was set. */
             const State *getInitialState() const;
 
-            base::Cost getMotionPrimitiveCost(size_t primitive) const;
+            // Cost Heuristic
 
+            /** \brief Set the cost heuristic to the distance function of the underlying space */
+            void setDefaultCostHeuristic();
+
+            /** \brief Set a custom function to calculate the cost heuristic */
+            void setCostHeuristic(const std::function<base::Cost(State *, State *)>& costHeuristic);
+
+            /** \brief Calculate the cost heuristic from one state to another */
             base::Cost costHeuristic(State *from, State *to) const;
  
         protected:
@@ -169,7 +180,7 @@ namespace ompl
             /** \brief Given two state pointers returns a heuristic of the cost. */
             std::function<base::Cost(State *, State *)> costHeuristic_;
 
-            State* initialState_;
+            State* initialState_{nullptr};
         };
     }
 }
