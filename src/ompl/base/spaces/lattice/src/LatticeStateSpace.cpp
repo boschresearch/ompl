@@ -46,12 +46,35 @@ namespace ompl
 
         State *LatticeStateSpace::allocState() const 
         {
+            // OMPL_INFORM("allocState: Allocating a state...");
             return new StateType(space_->allocState(), -1);
+        }
+
+        void LatticeStateSpace::copyState(State *destination, const State *source) const
+        {
+            // OMPL_INFORM("copyState: Attempting to copy state...");
+            // if(space_ == nullptr) {
+            //     OMPL_INFORM("space_ is nullptr");
+            //     return;
+            // }
+            // if(destination->as<StateType>()->getState() == nullptr) {
+            //     OMPL_INFORM("destination is nullptr");
+            //     return;
+            // }
+            // if(source->as<StateType>()->getState() == nullptr) {
+            //     OMPL_INFORM("source is nullptr");
+            //     return;
+            // }
+
+            space_->copyState(destination->as<StateType>()->getState(), source->as<StateType>()->getState());
+            destination->as<StateType>()->setPrimitiveId(source->as<StateType>()->getPrimitiveId());
+            // OMPL_INFORM("copyState: Copy succesful");
         }
 
         void LatticeStateSpace::addMotionPrimitive(const MotionPrimitive& motionPrimitive)
         {
             motionPrimitives_.push_back(motionPrimitive);
+            OMPL_INFORM("Motion primitive added");
         }
 
         void LatticeStateSpace::clearMotionPrimitives()
@@ -161,12 +184,15 @@ namespace ompl
 
         void LatticeStateSpace::setInitialState(State *state)
         {
-            freeState(state);
+            OMPL_INFORM("Set initial state...");
+            if(initialState_ != nullptr) 
+                freeState(initialState_);
             initialState_ = state;
         }
 
         const State *LatticeStateSpace::getInitialState() const
         {
+            OMPL_INFORM("Get initial state...");
             return initialState_;
         }
 

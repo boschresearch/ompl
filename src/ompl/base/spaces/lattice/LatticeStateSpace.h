@@ -98,6 +98,9 @@ namespace ompl
             /** \brief Allocate a new state in this space */
             State *allocState() const override;
 
+            /** \brief Copy a state from one to another */
+            void copyState(State *destination, const State *source) const override;
+
             /** \brief Add a motion primitive to the state space */
             void addMotionPrimitive(const MotionPrimitive& motionPrimitive);
 

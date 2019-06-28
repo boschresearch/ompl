@@ -82,7 +82,11 @@ namespace ompl {
 
         void StateLattice::setup() 
         {
+            OMPL_INFORM("Enter setup function...");
+
             Planner::setup();
+
+            OMPL_INFORM("Planner::setup completed.");
 
             // Setup nearest neighbor data structure
             if (!nn_)
@@ -92,7 +96,10 @@ namespace ompl {
                                         {
                                             return si_->distance(vertexStateProperty_[a], vertexStateProperty_[b]);
                                         });
+
+                OMPL_INFORM("Nearest neightbor datastructure initialized.");
             }
+
 
             // Setup optimization objective
             if (pdef_)
@@ -110,6 +117,8 @@ namespace ompl {
                 setup_ = false;
             }
 
+            OMPL_INFORM("Setup completed.");
+
             // TODO: do I need a sampler? (maybe if regions are specified)
             // Setup state sampler
             // sampler_ = si_->allocStateSampler();
@@ -117,12 +126,14 @@ namespace ompl {
 
         void StateLattice::setProblemDefinition(const base::ProblemDefinitionPtr &pdef) 
         {
+            OMPL_INFORM("Set problem definition");
             Planner::setProblemDefinition(pdef);
             clearQuery();
         }
 
         void StateLattice::getPlannerData(base::PlannerData &data) const
         {
+            OMPL_INFORM("Get planner data");
             Planner::getPlannerData(data);
 
             // Explicitly add start and goal states. Tag all states known to be valid as 1.
@@ -149,14 +160,17 @@ namespace ompl {
         {
             startM_.clear();
             goalM_.clear();
-            pis_.clear();
+            pis_.restart();
 
             // TODO: remove start / end state + connections from graph??
         }
 
         base::PlannerStatus StateLattice::solve(const base::PlannerTerminationCondition &ptc)
         {
+            OMPL_INFORM("Enter solve function...");
             checkValidity();
+
+            OMPL_INFORM("Validity checked succesfully.");
 
             // create the state lattice if it does not exist yet
             // TODO: add ptc to buld lattice function / combine solving and building lattice with both using ptc?
@@ -165,6 +179,8 @@ namespace ompl {
                 buildLattice();
                 OMPL_INFORM("%s: Created lattice with %u states", getName().c_str(), boost::num_vertices(g_));
             }
+
+            OMPL_INFORM("Lattice built succesfully.");
 
             auto *goal = dynamic_cast<base::GoalSampleableRegion *>(pdef_->getGoal().get());
 
@@ -204,6 +220,8 @@ namespace ompl {
                 }
             }
 
+            OMPL_INFORM("Start and goal added succesfully succesfully.");
+
             size_t startIndex = 0;
             size_t goalIndex = 0;
             bool someSolutionFound = false;
@@ -219,6 +237,7 @@ namespace ompl {
                 if (solution) 
                 {
                     someSolutionFound = true;
+                    OMPL_INFORM("Some solution was found.");
                     base::Cost c = solution->cost(opt_);
                     if (opt_->isSatisfied(c))
                     {
@@ -242,6 +261,7 @@ namespace ompl {
                     // tried all start and goal states and no solution was found
                     if (startIndex > startM_.size() && !someSolutionFound)
                     {
+                        OMPL_INFORM("Tried all start/goal combinations without finding a solution.");
                         return base::PlannerStatus::TIMEOUT;
                     }
                 }
@@ -250,15 +270,18 @@ namespace ompl {
 
             if (bestSolution)
             {
+                OMPL_INFORM("Solution to add best solution as solution path");
                 base::PlannerSolution psol(bestSolution);
                 psol.setPlannerName(getName());
                 // if the solution was optimized, we mark it as such
                 psol.setOptimized(opt_, bestCost, fullyOptimized);
                 pdef_->addSolutionPath(psol);
+                OMPL_INFORM("Solution path added");
             }
 
             // OMPL_INFORM("%s: Created %u states", getName().c_str(), boost::num_vertices(g_) - nrStartStates);
 
+            OMPL_INFORM("Solve completed.");
             return base::PlannerStatus::EXACT_SOLUTION;
         }
 
@@ -273,23 +296,37 @@ namespace ompl {
 
         void StateLattice::buildLattice()
         {
-            OMPL_INFORM("%s: Creating lazy lattice");
+            OMPL_INFORM("buildLattice: Creating lazy lattice");
             lattice_built_ = true;
 
             Vertex v = boost::add_vertex(g_);
+            OMPL_INFORM("buildLattice: Added first vertex to graph");
             vertexStateProperty_[v] = lssPtr_->cloneState(lssPtr_->getInitialState()); // TODO: better initial state handling?
+            OMPL_INFORM("buildLattice: Assign initial state to first vertex");
             vertexValidityProperty_[v] = VALIDITY_UNKNOWN;
+            OMPL_INFORM("buildLattice: Assign initial state to first vertex");
             nn_->add(v);
+            OMPL_INFORM("buildLattice: Add initial vertex to nearest neighbor structure");
 
             std::vector<Vertex> toBeExpanded;
             std::map<Vertex, bool> visited;
             visited[v] = true;
             toBeExpanded.push_back(v);
 
+            OMPL_INFORM("buildLattic: Init state");
+            lssPtr_->printState(vertexStateProperty_[v]);
+
+            OMPL_INFORM("buildLattice: init build lattice algorithm");
+
             while ( boost::num_vertices(g_) < maxVertices_ && toBeExpanded.size() != 0 ) 
             {
                 Vertex curVertex = toBeExpanded.back();
                 auto curState = vertexStateProperty_[curVertex];
+
+                OMPL_INFORM("buildLattice: state expanded");
+                OMPL_INFORM("buildLattic: expanded state");
+                lssPtr_->printState(vertexStateProperty_[curVertex]);
+
                 toBeExpanded.pop_back();
 
                 std::vector<size_t> outPrimitives = lssPtr_->getOutPrimitives(vertexStateProperty_[curVertex]);
@@ -303,6 +340,10 @@ namespace ompl {
                     vertexStateProperty_[endVertex] = endState; 
                     vertexValidityProperty_[endVertex] = VALIDITY_UNKNOWN; 
                     
+
+                    OMPL_INFORM("buildLattic: vertex added, total %u", boost::num_vertices(g_));
+                    lssPtr_->printState(vertexStateProperty_[endVertex]);
+
                     auto edge = boost::add_edge(curVertex, endVertex, g_);
                     edgeValidityProperty_[edge.first] = VALIDITY_UNKNOWN;
                     // TODO: different options to handle motion primitive cost, precomputed, based on opt_, based on motion primitive length, ...?
