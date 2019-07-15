@@ -220,7 +220,7 @@ namespace ompl {
                 }
             }
 
-            OMPL_INFORM("Start and goal added succesfully succesfully.");
+            OMPL_INFORM("Start and goal added succesfully.");
 
             size_t startIndex = 0;
             size_t goalIndex = 0;
@@ -241,6 +241,7 @@ namespace ompl {
                     base::Cost c = solution->cost(opt_);
                     if (opt_->isSatisfied(c))
                     {
+                        OMPL_INFORM("solve: opt is satisfied...");
                         fullyOptimized = true;
                         bestSolution = solution;
                         bestCost = c;
@@ -248,21 +249,29 @@ namespace ompl {
                     }
                     if (opt_->isCostBetterThan(c, bestCost))
                     {
+                        OMPL_INFORM("solve: new best cost...");
                         bestSolution = solution;
                         bestCost = c;
                     }
                 }
 
                 ++goalIndex;
-                if (goalIndex > goalM_.size()) 
+                if (goalIndex >= goalM_.size()) 
                 {
+                    OMPL_INFORM("solve: all goals tested for startindex %u...", startIndex);
                     goalIndex = 0;
                     ++startIndex;
-                    // tried all start and goal states and no solution was found
-                    if (startIndex > startM_.size() && !someSolutionFound)
+                    if (startIndex >= startM_.size()) // all start / goal combinations have been tried
                     {
-                        OMPL_INFORM("Tried all start/goal combinations without finding a solution.");
-                        return base::PlannerStatus::TIMEOUT;
+                        if(!someSolutionFound) // no solution found -> there is no solution with this lattice
+                        {
+                            OMPL_INFORM("Tried all start/goal combinations without finding a solution.");
+                            return base::PlannerStatus::TIMEOUT;
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -270,7 +279,7 @@ namespace ompl {
 
             if (bestSolution)
             {
-                OMPL_INFORM("Solution to add best solution as solution path");
+                OMPL_INFORM("Add best solution as solution path");
                 base::PlannerSolution psol(bestSolution);
                 psol.setPlannerName(getName());
                 // if the solution was optimized, we mark it as such
@@ -296,36 +305,39 @@ namespace ompl {
 
         void StateLattice::buildLattice()
         {
-            OMPL_INFORM("buildLattice: Creating lazy lattice");
+            // OMPL_INFORM("buildLattice: Creating lazy lattice");
             lattice_built_ = true;
 
+            std::map<std::string, Vertex> stateVertexMap;
+
             Vertex v = boost::add_vertex(g_);
-            OMPL_INFORM("buildLattice: Added first vertex to graph");
-            vertexStateProperty_[v] = lssPtr_->cloneState(lssPtr_->getInitialState()); // TODO: better initial state handling?
-            OMPL_INFORM("buildLattice: Assign initial state to first vertex");
+            // OMPL_INFORM("buildLattice: Added first vertex to graph");
+            base::State* state = lssPtr_->cloneState(lssPtr_->getInitialState());
+            stateVertexMap[lssPtr_->adjustAndHash(state)] = v;
+            vertexStateProperty_[v] = state; // TODO: better initial state handling?
+            // OMPL_INFORM("buildLattice: Assign initial state to first vertex");
             vertexValidityProperty_[v] = VALIDITY_UNKNOWN;
-            OMPL_INFORM("buildLattice: Assign initial state to first vertex");
+            // OMPL_INFORM("buildLattice: Assign initial state to first vertex");
             nn_->add(v);
-            OMPL_INFORM("buildLattice: Add initial vertex to nearest neighbor structure");
+            // OMPL_INFORM("buildLattice: Add initial vertex to nearest neighbor structure");
 
             std::vector<Vertex> toBeExpanded;
-            std::map<Vertex, bool> visited;
-            visited[v] = true;
             toBeExpanded.push_back(v);
 
-            OMPL_INFORM("buildLattic: Init state");
-            lssPtr_->printState(vertexStateProperty_[v]);
+            // OMPL_INFORM("buildLattic: Init state");
+            // lssPtr_->printState(vertexStateProperty_[v]);
 
             OMPL_INFORM("buildLattice: init build lattice algorithm");
+
+            
 
             while ( boost::num_vertices(g_) < maxVertices_ && toBeExpanded.size() != 0 ) 
             {
                 Vertex curVertex = toBeExpanded.back();
-                auto curState = vertexStateProperty_[curVertex];
+                base::State* curState = vertexStateProperty_[curVertex];
 
-                OMPL_INFORM("buildLattice: state expanded");
-                OMPL_INFORM("buildLattic: expanded state");
-                lssPtr_->printState(vertexStateProperty_[curVertex]);
+                // OMPL_INFORM("buildLattice: state expanded, toBeExpanded size: %u, total size: %u", toBeExpanded.size(), boost::num_vertices(g_));
+                // lssPtr_->printState(vertexStateProperty_[curVertex]);
 
                 toBeExpanded.pop_back();
 
@@ -334,30 +346,39 @@ namespace ompl {
                 for( const size_t primitive : outPrimitives)
                 {
                     auto endState = lssPtr_->getEndState(curState, primitive);
-                    // TODO: check if endState already exists as vertex, maybe:
-                    // Vertex endVertex = getVertexForState(endState);
-                    Vertex endVertex = boost::add_vertex(g_);
-                    vertexStateProperty_[endVertex] = endState; 
-                    vertexValidityProperty_[endVertex] = VALIDITY_UNKNOWN; 
-                    
 
-                    OMPL_INFORM("buildLattic: vertex added, total %u", boost::num_vertices(g_));
-                    lssPtr_->printState(vertexStateProperty_[endVertex]);
-
-                    auto edge = boost::add_edge(curVertex, endVertex, g_);
-                    edgeValidityProperty_[edge.first] = VALIDITY_UNKNOWN;
-                    // TODO: different options to handle motion primitive cost, precomputed, based on opt_, based on motion primitive length, ...?
-                    edgeWeightProperty_[edge.first] = lssPtr_->getMotionPrimitiveCost(primitive);
-                    edgePrimitiveProperty_[edge.first] = primitive;
-
-                    if( visited.find( endVertex ) == visited.end() )
+                    if(lssPtr_->satisfiesBounds(endState)) 
                     {
-                        toBeExpanded.push_back( endVertex );
-                        visited[endVertex] = true;
+                        std::string stateHash = lssPtr_->adjustAndHash(endState);
+                        auto stateVertexPairIt = stateVertexMap.find(stateHash);
+                        Vertex endVertex;
+                        if(stateVertexPairIt == stateVertexMap.end()) { // vertex does not exist yet
+                            endVertex = boost::add_vertex(g_);
+                            stateVertexMap[stateHash] = endVertex;
+                            vertexStateProperty_[endVertex] = endState; 
+                            vertexValidityProperty_[endVertex] = VALIDITY_UNKNOWN;
+                            nn_->add(endVertex);
+
+                            // OMPL_INFORM("buildLattice: vertex added, total %u", boost::num_vertices(g_));
+                            // lssPtr_->printState(vertexStateProperty_[endVertex]);
+                            toBeExpanded.push_back(endVertex);
+                        } 
+                        else {
+                            endVertex = stateVertexPairIt->second;
+                        }
+
+                        auto edge = boost::add_edge(curVertex, endVertex, g_);
+                        edgeValidityProperty_[edge.first] = VALIDITY_UNKNOWN;
+                        // TODO: different options to handle motion primitive cost, precomputed, based on opt_, based on motion primitive length, ...?
+                        edgeWeightProperty_[edge.first] = lssPtr_->getMotionPrimitiveCost(primitive);
+                        edgePrimitiveProperty_[edge.first] = primitive;
+
                     }
+
                 }
             }
 
+            OMPL_INFORM("buildLattice: lattice built successfully");
             // TODO: store the full lattice in case we want to plan in the same statespace, but with a different map
             // boost::copy_graph(g_, g_full_lattice_);
             // TODO: add store lattice to file support
@@ -367,19 +388,24 @@ namespace ompl {
         {
             // first create the vertex and add all properties
             Vertex v = boost::add_vertex(g_);
-            vertexStateProperty_[v] = state; 
-            vertexValidityProperty_[v] = VALIDITY_UNKNOWN; 
+            vertexStateProperty_[v] = state;
+            vertexValidityProperty_[v] = VALIDITY_UNKNOWN;
             std::vector<Vertex> neighbors;
             nn_->nearestK(v, nearestK_, neighbors);
 
+            OMPL_INFORM("Adding non lattice state: ");
+            si_->printState(state);
             for(const auto& neighbor : neighbors)
             {
-                if(end) 
+                if(!end) 
                 {
                     auto edge = boost::add_edge(v, neighbor, g_);
                     edgeValidityProperty_[edge.first] = VALIDITY_UNKNOWN;
                     edgeWeightProperty_[edge.first] = opt_->motionCost(vertexStateProperty_[v], vertexStateProperty_[neighbor]);
                     edgePrimitiveProperty_[edge.first] = -1;
+
+                    OMPL_INFORM("Connected to: ");
+                    si_->printState(vertexStateProperty_[neighbor]);
                 }
                 else 
                 {
@@ -387,6 +413,9 @@ namespace ompl {
                     edgeValidityProperty_[edge.first] = VALIDITY_UNKNOWN;
                     edgeWeightProperty_[edge.first] = opt_->motionCost(vertexStateProperty_[neighbor], vertexStateProperty_[v]);
                     edgePrimitiveProperty_[edge.first] = -1;
+
+                    OMPL_INFORM("Connected to: ");
+                    si_->printState(vertexStateProperty_[neighbor]);
                 }
             }
 
@@ -397,8 +426,13 @@ namespace ompl {
 
         ompl::base::PathPtr StateLattice::constructSolution(const base::PlannerTerminationCondition &ptc, const Vertex &start, const Vertex &goal)
         {
+            OMPL_INFORM("constructSolution: Starting construct solution...");
+            size_t counter=1;
+
             while(true)
             {
+                OMPL_INFORM("constructSolution: init try %u", counter);
+                ++counter;
                 // Need to update the index map here, becuse nodes may have been removed and
                 // the numbering will not be 0 .. N-1 otherwise.
                 unsigned long int index = 0;
@@ -430,17 +464,24 @@ namespace ompl {
                 }
                 catch (AStarFoundGoal &)
                 {
+                    OMPL_INFORM("Astar found goal");
                 }
-                if (prev[goal] == goal) // no solution found
+                if (prev[goal] == goal) { // no solution found
+                    OMPL_INFORM("constructSolution: no solution found");
                     return base::PathPtr(); // shared_ptr -> default is nullptr
+                }
+                OMPL_INFORM("constructSolution: solution found, check for collisions now");
 
                 // First, get the solution states without copying them, and check them for validity.
                 // We do all the node validity checks for the vertices, as this may remove a larger
                 // part of the graph (compared to removing an edge).
-                std::vector<const base::State *> states(1, vertexStateProperty_[goal]);
+                std::vector<const base::State *> states(1, vertexStateProperty_[goal]); // all valid states
                 std::set<Vertex> verticesToRemove;
                 for (Vertex pos = prev[goal]; prev[pos] != pos; pos = prev[pos])
                 {
+                    OMPL_INFORM("Path state: ");
+                    si_->printState(vertexStateProperty_[pos]);
+
                     const base::State *st = vertexStateProperty_[pos];
                     unsigned int &vd = vertexValidityProperty_[pos];
                     if ((vd & VALIDITY_TRUE) == 0)
@@ -451,6 +492,8 @@ namespace ompl {
                     if (verticesToRemove.empty())
                         states.push_back(st);
                 }
+
+                OMPL_INFORM("constructSolution: have to remove %u vertices", verticesToRemove.size());
 
                 // We remove *all* invalid vertices.
                 if (!verticesToRemove.empty())
@@ -475,29 +518,39 @@ namespace ompl {
                     continue; // try again with new A* query
                 }
 
+                OMPL_INFORM("constructSolution: no more vertices to remove", verticesToRemove.empty());
+
                 // start is checked for validity already
                 states.push_back(vertexStateProperty_[start]);
 
                 // Check the edges too, if the vertices were valid. Remove the first invalid edge only.
                 std::vector<const base::State *>::const_iterator prevState = states.begin(), state = prevState + 1;
+                OMPL_INFORM("constructSolution: checking edges now");
                 Vertex prevVertex = goal, pos = prev[goal];
+                bool all_valid = true;
                 do
                 {
                     // TODO: how does this handle parallel edges??
                     // check https://stackoverflow.com/questions/21214091/find-multiple-edges-given-2-vertices-in-boost-graph for 
                     // some hints
 
+                    OMPL_INFORM("constructSolution: lookup_edge");
                     Edge e = boost::lookup_edge(pos, prevVertex, g_).first;
                     unsigned int &evd = edgeValidityProperty_[e];
+                    OMPL_INFORM("constructSolution: lookup successful");
                     if ((evd & VALIDITY_TRUE) == 0)
                     {
-                        if (si_->checkMotion(*state, *prevState))
+                        OMPL_INFORM("constructSolution: Check motion...");
+                        // TODO: which interpolator is this using?
+                        if (si_->checkMotion(*prevState, *state))
                             evd |= VALIDITY_TRUE;
                     }
                     if ((evd & VALIDITY_TRUE) == 0)
                     {
+                        OMPL_INFORM("constructSolution: Removing edge.");
                         boost::remove_edge(e, g_);
-                        continue; // try again with new A* query
+                        all_valid = false;
+                        break; // try again with new A* query
                     }
                     prevState = state;
                     ++state;
@@ -505,7 +558,14 @@ namespace ompl {
                     pos = prev[pos];
                 } while (prevVertex != pos);
 
+                if(!all_valid)
+                    continue;
+
+                OMPL_INFORM("constructSolution: path is valid, construct solution...", verticesToRemove.empty());
+
                 auto p(std::make_shared<PathGeometric>(si_));
+
+                // states vector is goal -> start, reverse iterate for correct order
                 for (std::vector<const base::State *>::const_reverse_iterator st = states.rbegin(); st != states.rend(); ++st)
                     p->append(*st);
                 return p;

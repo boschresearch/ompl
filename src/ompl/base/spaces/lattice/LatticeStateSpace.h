@@ -92,6 +92,27 @@ namespace ompl
                 int primitiveId_;
             };
 
+            /// @cond IGNORE
+            /** \brief Forward declaration of ompl::base::LatticeStateSpace::StateHasher */
+            OMPL_CLASS_FORWARD(StateHasher);
+            /// @endcond
+
+            /** \brief Abstract class that defines how states are added to the graph and how to map 
+             * a state to its representative state / vertex */
+            class StateHasher 
+            {
+                public:
+                    StateHasher();
+                    virtual ~StateHasher();
+                    virtual std::string adjustAndHash(State * state);
+                protected:
+                    /** \brief Adjust a state i.e. to ensure it lies on a grid */
+                    virtual void adjustState(State* state) = 0;
+                    /** \brief Return a string that is unique to all states that are considered the
+                     * same. */
+                    virtual std::string hashState(State* state) = 0;
+            };
+
             /** \brief Constructor. The underlying state space has to be defined */
             LatticeStateSpace(const StateSpacePtr &space);
 
@@ -139,6 +160,9 @@ namespace ompl
 
             bool hasSymmetricInterpolate() const override;
 
+            /** \brief Print the underlying state and motion primitive info. */
+            void printState(const State *state, std::ostream &out = std::cout) const override;
+
             double distance(const State *state1, const State *state2) const override
             {
                 return space_->distance(state1->as<StateType>()->getState(), state2->as<StateType>()->getState());
@@ -163,6 +187,10 @@ namespace ompl
 
             /** \brief Calculate the cost heuristic from one state to another */
             base::Cost costHeuristic(State *from, State *to) const;
+
+            void setStateHasher(StateHasherPtr stateHasher);
+
+            std::string adjustAndHash(State *state);
  
         protected:
             /** \brief Motion primitives this space includes for lattice planning. */
@@ -182,6 +210,9 @@ namespace ompl
 
             /** \brief Given two state pointers returns a heuristic of the cost. */
             std::function<base::Cost(State *, State *)> costHeuristic_;
+
+            /** \brief Given two state pointers returns a heuristic of the cost. */
+            StateHasherPtr stateHasher_{nullptr};
 
             State* initialState_{nullptr};
         };

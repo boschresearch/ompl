@@ -85,6 +85,7 @@ namespace ompl {
             auto sample = sequence_ptr_->sample();
 
             const unsigned int dim = space_->getDimension();
+            
             const RealVectorBounds &bounds = static_cast<const RealVectorStateSpace *>(space_)->getBounds();
 
             if(stretch_) {

@@ -116,9 +116,8 @@ namespace ompl
         {
             auto transform = transformCalculator_(startState, motionPrimitives_[primitiveId]);
 
-            // for the motion primitives and the states passed around internally, 
-            // we simply use the underlying state type
-            State * endState = allocState();
+            size_t lastStateIndex = motionPrimitives_[primitiveId].getStateCount() - 1;
+            State * endState = cloneState(motionPrimitives_[primitiveId].getState(lastStateIndex));
 
             transform(endState);
 
@@ -182,6 +181,14 @@ namespace ompl
             }
         }
 
+        void LatticeStateSpace::printState(const State *state, std::ostream &out) const
+        {
+            out << "Lattice state [" << std::endl;
+            space_->printState(state->as<StateType>()->getState(), out);
+            out << "Primitive id [" << state->as<StateType>()->getPrimitiveId() << "]" << std::endl;
+            out << "]" << std::endl;
+        }
+
         void LatticeStateSpace::setInitialState(State *state)
         {
             OMPL_INFORM("Set initial state...");
@@ -220,6 +227,30 @@ namespace ompl
         base::Cost LatticeStateSpace::costHeuristic(State *from, State *to) const
         {
             return costHeuristic_(from, to);
+        }
+
+        void LatticeStateSpace::setStateHasher(StateHasherPtr stateHasher) 
+        {
+            stateHasher_ = stateHasher;
+        }
+
+        std::string LatticeStateSpace::adjustAndHash(State *state)
+        {
+            return stateHasher_->adjustAndHash(state);
+        }
+
+        LatticeStateSpace::StateHasher::StateHasher() 
+        {
+        }
+
+        LatticeStateSpace::StateHasher::~StateHasher() 
+        {
+        }
+
+        std::string LatticeStateSpace::StateHasher::adjustAndHash(State *state) 
+        {
+            adjustState(state);
+            return hashState(state);
         }
     }
 }
