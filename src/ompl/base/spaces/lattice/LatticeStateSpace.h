@@ -40,6 +40,7 @@
 
 #include "ompl/base/spaces/WrapperStateSpace.h"
 #include "ompl/geometric/PathGeometric.h"
+#include "ompl/base/DiscreteMotionValidator.h"
 
 #include <vector>
 
@@ -74,7 +75,8 @@ namespace ompl
                 /** \brief Constructor. Takes a reference \a state to the underlying state */
                 StateType(State *state, int primitiveId) : 
                     WrapperStateSpace::StateType(state),
-                    primitiveId_(primitiveId)
+                    primitiveId_(primitiveId),
+                    t_(0.0)
                 {
                 }
 
@@ -87,10 +89,24 @@ namespace ompl
                 {
                     primitiveId_ = primitiveId;
                 }
+
+                double getPrimitivePos() const
+                {
+                    return t_;
+                }
+                
+                void setPrimitivePos(double t)
+                {
+                    t_ = t;
+                } 
             protected:
                 /** \brief Id of the motion primitive this state is part of. -1 if it is not part of any motion primitive. */
-                int primitiveId_;
+                int primitiveId_{-1};
+
+                /** \brief If primitiveId_ != 0 this indicates where on the motion primitive the state is located */
+                double t_{0.0};
             };
+
 
             /// @cond IGNORE
             /** \brief Forward declaration of ompl::base::LatticeStateSpace::StateHasher */
@@ -131,9 +147,6 @@ namespace ompl
             /** \brief Return the outgoing motion primitive ids of a given state */
             std::vector<size_t> getOutPrimitives(const State *state) const;
 
-            /** \brief Transform a motion primitive to start at a given state */
-            MotionPrimitive transformPrimitive(const State * startState, const MotionPrimitive& motionPrimitive) const;
-
             /** \brief Return the end state given a motion primitive and a given start state */
             State* getEndState(const State* startState, size_t primitiveId) const;
 
@@ -152,6 +165,12 @@ namespace ompl
              * of the motion primitives.
              */
             void setDefaultPrimitiveInterpolator();
+
+            /** \brief Transform a motion primitive to start at a given state */
+            MotionPrimitive transformPrimitive(const State * startState, const MotionPrimitive& motionPrimitive) const;
+
+            /** \brief Return the primitive of a given id */
+            const MotionPrimitive& getMotionPrimitive(size_t primitive_id) { return motionPrimitives_[primitive_id]; };
 
             /** \brief Set the function that interpolates on a motion primitive. */
             void setPrimitiveInterpolator(const std::function<void(const State*, const State*, double, const MotionPrimitive&, State*)>& primitiveInterpolator);
@@ -216,7 +235,26 @@ namespace ompl
 
             State* initialState_{nullptr};
         };
-    }
-}
+
+        /** \brief A lattice motion validator that only uses the state validity checker.
+            If a dense primitive is provided, collision checking is only performed for the waypoints.
+            If no motion primitive is provided the discrete motion validator is used. */
+        class LatticeMotionValidator : public DiscreteMotionValidator
+        {
+        public:
+            LatticeMotionValidator(SpaceInformation *si) : DiscreteMotionValidator(si), ss_(*si->getStateSpace()->as<LatticeStateSpace>())
+            {
+            }
+            LatticeMotionValidator(const SpaceInformationPtr &si) : DiscreteMotionValidator(si), ss_(*si->getStateSpace()->as<LatticeStateSpace>())
+            {
+            }
+            bool checkMotion(const State *start, const LatticeStateSpace::MotionPrimitive& primitive) const;
+
+        private:
+            const LatticeStateSpace &ss_;
+        };
+
+    } // namespace base
+} // namespace ompl
 
 #endif

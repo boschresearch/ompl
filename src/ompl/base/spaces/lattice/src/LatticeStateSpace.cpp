@@ -74,7 +74,6 @@ namespace ompl
         void LatticeStateSpace::addMotionPrimitive(const MotionPrimitive& motionPrimitive)
         {
             motionPrimitives_.push_back(motionPrimitive);
-            OMPL_INFORM("Motion primitive added");
         }
 
         void LatticeStateSpace::clearMotionPrimitives()
@@ -109,7 +108,7 @@ namespace ompl
                 transform(state);
             }
 
-            return motionPrimitive;
+            return transformedPrimitive;
         }
 
         State* LatticeStateSpace::getEndState(const State* startState, size_t primitiveId) const
@@ -177,7 +176,7 @@ namespace ompl
             }
             else // interpolate on a motion primitive
             {
-                primitiveInterpolator_(rfrom->getState(), rto->getState(), t, motionPrimitives_[motionPrimitiveIdFrom], rstate->getState());
+                primitiveInterpolator_(rfrom, rto, t, motionPrimitives_[motionPrimitiveIdFrom], rstate);
             }
         }
 
@@ -186,6 +185,7 @@ namespace ompl
             out << "Lattice state [" << std::endl;
             space_->printState(state->as<StateType>()->getState(), out);
             out << "Primitive id [" << state->as<StateType>()->getPrimitiveId() << "]" << std::endl;
+            out << "Primitive pos [" << state->as<StateType>()->getPrimitivePos() << "]" << std::endl;
             out << "]" << std::endl;
         }
 
@@ -252,5 +252,23 @@ namespace ompl
             adjustState(state);
             return hashState(state);
         }
-    }
-}
+
+        bool LatticeMotionValidator::checkMotion(const State *start, const LatticeStateSpace::MotionPrimitive& primitive) const 
+        {
+            LatticeStateSpace::MotionPrimitive tp = ss_.transformPrimitive(start, primitive);
+
+            auto states = tp.getStates();
+            auto stateValidityChecker = si_->getStateValidityChecker();
+
+            for(const auto& state : states) {
+                if(!stateValidityChecker->isValid(state)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+    } // namespace base
+
+} // namespace ompl

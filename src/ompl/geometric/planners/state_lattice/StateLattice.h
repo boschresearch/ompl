@@ -228,6 +228,8 @@ namespace ompl
             size_t maxVertices_{100000};
 
             size_t nearestK_{10};
+
+            std::shared_ptr<ompl::base::LatticeMotionValidator> latticeMotionValidatorPtr_ {nullptr};
         };
     }
 }

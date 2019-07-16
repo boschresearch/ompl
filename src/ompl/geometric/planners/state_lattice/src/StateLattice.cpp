@@ -59,7 +59,7 @@ namespace ompl {
             vertexValidityProperty_(boost::get(vertex_flags_t(), g_)),
             edgeWeightProperty_(boost::get(boost::edge_weight_t(), g_)),
             edgeValidityProperty_(boost::get(edge_flags_t(), g_)),
-            edgePrimitiveProperty_(boost::get(edge_primitive_t(), g_)) 
+            edgePrimitiveProperty_(boost::get(edge_primitive_t(), g_))
         { 
 
             // check if the provided space is a LatticeStateSpace
@@ -167,6 +167,9 @@ namespace ompl {
 
         base::PlannerStatus StateLattice::solve(const base::PlannerTerminationCondition &ptc)
         {
+            // check if lattice motion validator is chosen
+            latticeMotionValidatorPtr_ = std::dynamic_pointer_cast<ompl::base::LatticeMotionValidator>(si_->getMotionValidator());
+
             OMPL_INFORM("Enter solve function...");
             checkValidity();
 
@@ -525,6 +528,8 @@ namespace ompl {
 
                 // Check the edges too, if the vertices were valid. Remove the first invalid edge only.
                 std::vector<const base::State *>::const_iterator prevState = states.begin(), state = prevState + 1;
+                std::vector<int> primitive_ids;
+                primitive_ids.push_back(-1);
                 OMPL_INFORM("constructSolution: checking edges now");
                 Vertex prevVertex = goal, pos = prev[goal];
                 bool all_valid = true;
@@ -537,12 +542,18 @@ namespace ompl {
                     OMPL_INFORM("constructSolution: lookup_edge");
                     Edge e = boost::lookup_edge(pos, prevVertex, g_).first;
                     unsigned int &evd = edgeValidityProperty_[e];
+                    int primitive_id = edgePrimitiveProperty_[e];
+                    primitive_ids.push_back(primitive_id);
                     OMPL_INFORM("constructSolution: lookup successful");
                     if ((evd & VALIDITY_TRUE) == 0)
                     {
                         OMPL_INFORM("constructSolution: Check motion...");
-                        // TODO: which interpolator is this using?
-                        if (si_->checkMotion(*prevState, *state))
+                        if(latticeMotionValidatorPtr_ != nullptr && primitive_id != -1) 
+                        {
+                            if(latticeMotionValidatorPtr_->checkMotion(*state, lssPtr_->getMotionPrimitive(primitive_id)))
+                                evd |= VALIDITY_TRUE;
+                        }
+                        else if (si_->checkMotion(*prevState, *state))
                             evd |= VALIDITY_TRUE;
                     }
                     if ((evd & VALIDITY_TRUE) == 0)
@@ -565,9 +576,11 @@ namespace ompl {
 
                 auto p(std::make_shared<PathGeometric>(si_));
 
-                // states vector is goal -> start, reverse iterate for correct order
-                for (std::vector<const base::State *>::const_reverse_iterator st = states.rbegin(); st != states.rend(); ++st)
-                    p->append(*st);
+                // states vector is goal -> start, reverse for correct order
+                for(int i = states.size() - 1; i >= 0; --i) {
+                    p->append(states[i]);
+                    p->getStates().back()->as<ompl::base::LatticeStateSpace::StateType>()->setPrimitiveId(primitive_ids[i]);
+                }
                 return p;
             }
         }
