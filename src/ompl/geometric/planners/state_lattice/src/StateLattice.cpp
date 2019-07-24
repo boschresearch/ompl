@@ -156,6 +156,64 @@ namespace ompl {
             clearQuery();
         }
 
+        void StateLattice::resetLattice()
+        {
+            // build lattice if now lattice has been built so far
+            if(!lattice_built_) {
+                buildLattice();
+                OMPL_INFORM("%s: Created lattice with %u states", getName().c_str(), boost::num_vertices(g_));
+            }
+            else {
+                OMPL_INFORM("%s: Reset lattice, graph has %u vertices", getName().c_str(), boost::num_vertices(g_));
+
+                g_ = g_full_lattice_;
+
+                // need to create new nearest neighbor structure, since vertex addresses have changed
+                OMPL_INFORM("%s: Attempting to recreate nearest neighbor structure...", getName().c_str());
+                nn_->clear();
+
+                boost::graph_traits<Graph>::vertex_iterator vi, vend;
+                for (boost::tie(vi, vend) = boost::vertices(g_); vi != vend; ++vi)
+                    nn_->add(*vi);
+
+                OMPL_INFORM("%s: Nearest neighbor structure successfully created", getName().c_str());
+                // boost::copy_graph(g_full_lattice_, g_);
+                OMPL_INFORM("%s: Reset lattice, graph has %u vertices", getName().c_str(), boost::num_vertices(g_));
+            }
+        }
+
+        void StateLattice::checkVertices()
+        {
+            std::vector<Vertex> verticesToRemove;
+            boost::graph_traits<Graph>::vertex_iterator vi, vend;
+            for (boost::tie(vi, vend) = boost::vertices(g_); vi != vend; ++vi) {
+                const base::State *st = vertexStateProperty_[*vi];
+                unsigned int &vd = vertexValidityProperty_[*vi];
+                if ((vd & VALIDITY_TRUE) == 0)
+                    if (si_->isValid(st))
+                        vd |= VALIDITY_TRUE;
+                if ((vd & VALIDITY_TRUE) == 0)
+                    verticesToRemove.push_back(*vi);
+            }
+
+            OMPL_INFORM("constructSolution: removing %u vertices", verticesToRemove.size());
+
+            // We remove *all* invalid vertices.
+            if (!verticesToRemove.empty())
+            {
+                // Remember the current neighbors.
+                for (auto it = verticesToRemove.begin(); it != verticesToRemove.end(); ++it)
+                {
+                    // Remove vertex from nearest neighbors data structure.
+                    // nn_->remove(*it);
+                    // Remove all edges.
+                    boost::clear_vertex(*it, g_);
+                    // Remove the vertex.
+                    boost::remove_vertex(*it, g_);
+                }
+            }
+        }
+
         void StateLattice::clearQuery()
         {
             startM_.clear();
@@ -167,6 +225,7 @@ namespace ompl {
 
         base::PlannerStatus StateLattice::solve(const base::PlannerTerminationCondition &ptc)
         {
+
             // check if lattice motion validator is chosen
             latticeMotionValidatorPtr_ = std::dynamic_pointer_cast<ompl::base::LatticeMotionValidator>(si_->getMotionValidator());
 
@@ -182,6 +241,7 @@ namespace ompl {
                 buildLattice();
                 OMPL_INFORM("%s: Created lattice with %u states", getName().c_str(), boost::num_vertices(g_));
             }
+
 
             OMPL_INFORM("Lattice built succesfully.");
 
@@ -224,6 +284,12 @@ namespace ompl {
             }
 
             OMPL_INFORM("Start and goal added succesfully.");
+
+
+            // either check vertices now, or only for A* solutions
+            // it depends on how costly the collision check, which way performs better
+            if(checkVerticesBefore_)
+                checkVertices();
 
             size_t startIndex = 0;
             size_t goalIndex = 0;
@@ -382,8 +448,11 @@ namespace ompl {
             }
 
             OMPL_INFORM("buildLattice: lattice built successfully");
-            // TODO: store the full lattice in case we want to plan in the same statespace, but with a different map
-            // boost::copy_graph(g_, g_full_lattice_);
+
+            g_full_lattice_.clear();
+            g_full_lattice_ = g_;
+
+            
             // TODO: add store lattice to file support
         }
 
@@ -396,8 +465,7 @@ namespace ompl {
             std::vector<Vertex> neighbors;
             nn_->nearestK(v, nearestK_, neighbors);
 
-            OMPL_INFORM("Adding non lattice state: ");
-            si_->printState(state);
+            OMPL_INFORM("Adding non lattice states ");
             for(const auto& neighbor : neighbors)
             {
                 if(!end) 
@@ -422,7 +490,7 @@ namespace ompl {
                 }
             }
 
-            nn_->add(v);
+            // nn_->add(v);
 
             return v;
         }
@@ -482,9 +550,6 @@ namespace ompl {
                 std::set<Vertex> verticesToRemove;
                 for (Vertex pos = prev[goal]; prev[pos] != pos; pos = prev[pos])
                 {
-                    OMPL_INFORM("Path state: ");
-                    si_->printState(vertexStateProperty_[pos]);
-
                     const base::State *st = vertexStateProperty_[pos];
                     unsigned int &vd = vertexValidityProperty_[pos];
                     if ((vd & VALIDITY_TRUE) == 0)
@@ -501,18 +566,10 @@ namespace ompl {
                 // We remove *all* invalid vertices.
                 if (!verticesToRemove.empty())
                 {
-                    // Remember the current neighbors.
-                    std::set<Vertex> neighbors;
                     for (auto it = verticesToRemove.begin(); it != verticesToRemove.end(); ++it)
                     {
-                        boost::graph_traits<Graph>::adjacency_iterator nbh, last;
-                        for (boost::tie(nbh, last) = boost::adjacent_vertices(*it, g_); nbh != last; ++nbh)
-                            if (verticesToRemove.find(*nbh) == verticesToRemove.end())
-                                neighbors.insert(*nbh);
                         // Remove vertex from nearest neighbors data structure.
-                        nn_->remove(*it);
-                        // Free vertex state.
-                        si_->freeState(vertexStateProperty_[*it]);
+                        // nn_->remove(*it); // not actually required, but more safe to do it anyways
                         // Remove all edges.
                         boost::clear_vertex(*it, g_);
                         // Remove the vertex.
@@ -539,15 +596,12 @@ namespace ompl {
                     // check https://stackoverflow.com/questions/21214091/find-multiple-edges-given-2-vertices-in-boost-graph for 
                     // some hints
 
-                    OMPL_INFORM("constructSolution: lookup_edge");
                     Edge e = boost::lookup_edge(pos, prevVertex, g_).first;
                     unsigned int &evd = edgeValidityProperty_[e];
                     int primitive_id = edgePrimitiveProperty_[e];
                     primitive_ids.push_back(primitive_id);
-                    OMPL_INFORM("constructSolution: lookup successful");
                     if ((evd & VALIDITY_TRUE) == 0)
                     {
-                        OMPL_INFORM("constructSolution: Check motion...");
                         if(latticeMotionValidatorPtr_ != nullptr && primitive_id != -1) 
                         {
                             if(latticeMotionValidatorPtr_->checkMotion(*state, lssPtr_->getMotionPrimitive(primitive_id)))

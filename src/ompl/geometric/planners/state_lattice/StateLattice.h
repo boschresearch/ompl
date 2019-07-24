@@ -91,7 +91,7 @@ namespace ompl
             // cant use using Vertex = boost::graph_traits<Graph>::vertex_descriptor; for predecessor due to circular dependency
             // exterior property for astar would be better maybe??
             /** @brief The type for a vertex in the roadmap. */
-            using Vertex = boost::adjacency_list_traits<boost::vecS, boost::listS, boost::directedS>::vertex_descriptor;
+            using Vertex = boost::adjacency_list_traits<boost::listS, boost::listS, boost::bidirectionalS>::vertex_descriptor;
 
             /**
              @brief The underlying roadmap graph.
@@ -154,6 +154,9 @@ namespace ompl
                 This enables multi-query functionality for the StateLattice planner. */
             void clearQuery();
 
+            void resetLattice();
+            
+
             base::PlannerStatus solve(const base::PlannerTerminationCondition &ptc) override;
         protected:
             /** \brief Flag indicating validity of an edge of a vertex */
@@ -161,6 +164,9 @@ namespace ompl
 
             /** \brief Flag indicating validity of an edge of a vertex */
             static const unsigned int VALIDITY_TRUE = 1;
+
+            /** \brief Check and remove all invalid vertices from the lattice */
+            void checkVertices();
 
             // VALIDITY_FALSE not required, since such edges / vertices will be removed
 
@@ -228,6 +234,8 @@ namespace ompl
             size_t maxVertices_{100000};
 
             size_t nearestK_{10};
+
+            bool checkVerticesBefore_{true};
 
             std::shared_ptr<ompl::base::LatticeMotionValidator> latticeMotionValidatorPtr_ {nullptr};
         };
