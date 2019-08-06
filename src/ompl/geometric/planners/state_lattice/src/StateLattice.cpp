@@ -80,14 +80,8 @@ namespace ompl {
 
         StateLattice::~StateLattice() = default;
 
-        void StateLattice::setup() 
+        void StateLattice::setupNearestNeighbors() 
         {
-            OMPL_INFORM("Enter setup function...");
-
-            Planner::setup();
-
-            OMPL_INFORM("Planner::setup completed.");
-
             // Setup nearest neighbor data structure
             if (!nn_)
             {
@@ -97,9 +91,20 @@ namespace ompl {
                                             return si_->distance(vertexStateProperty_[a], vertexStateProperty_[b]);
                                         });
 
-                OMPL_INFORM("Nearest neightbor datastructure initialized.");
+                // OMPL_INFORM("Nearest neightbor datastructure initialized.");
             }
+        }
 
+        void StateLattice::setup() 
+        {
+            // OMPL_INFORM("Enter setup function...");
+
+            Planner::setup();
+
+            // OMPL_INFORM("Planner::setup completed.");
+
+            // Setup nearest neighbor data structure
+            setupNearestNeighbors();
 
             // Setup optimization objective
             if (pdef_)
@@ -117,7 +122,7 @@ namespace ompl {
                 setup_ = false;
             }
 
-            OMPL_INFORM("Setup completed.");
+            // OMPL_INFORM("Setup completed.");
 
             // TODO: do I need a sampler? (maybe if regions are specified)
             // Setup state sampler
@@ -126,14 +131,14 @@ namespace ompl {
 
         void StateLattice::setProblemDefinition(const base::ProblemDefinitionPtr &pdef) 
         {
-            OMPL_INFORM("Set problem definition");
+            // OMPL_INFORM("Set problem definition");
             Planner::setProblemDefinition(pdef);
             clearQuery();
         }
 
         void StateLattice::getPlannerData(base::PlannerData &data) const
         {
-            OMPL_INFORM("Get planner data");
+            // OMPL_INFORM("Get planner data");
             Planner::getPlannerData(data);
 
             // Explicitly add start and goal states. Tag all states known to be valid as 1.
@@ -158,25 +163,28 @@ namespace ompl {
 
         void StateLattice::resetLattice()
         {
-            // build lattice if now lattice has been built so far
+            // setup nearest neighbors structure, if not done so far
+            setupNearestNeighbors();
+
+            // build lattice if no lattice has been built so far
             if(!lattice_built_) {
                 buildLattice();
                 OMPL_INFORM("%s: Created lattice with %u states", getName().c_str(), boost::num_vertices(g_));
             }
             else {
-                OMPL_INFORM("%s: Reset lattice, graph has %u vertices", getName().c_str(), boost::num_vertices(g_));
+                // OMPL_INFORM("%s: Reset lattice, graph has %u vertices", getName().c_str(), boost::num_vertices(g_));
 
                 g_ = g_full_lattice_;
 
                 // need to create new nearest neighbor structure, since vertex addresses have changed
-                OMPL_INFORM("%s: Attempting to recreate nearest neighbor structure...", getName().c_str());
+                // OMPL_INFORM("%s: Attempting to recreate nearest neighbor structure...", getName().c_str());
                 nn_->clear();
 
                 boost::graph_traits<Graph>::vertex_iterator vi, vend;
                 for (boost::tie(vi, vend) = boost::vertices(g_); vi != vend; ++vi)
                     nn_->add(*vi);
 
-                OMPL_INFORM("%s: Nearest neighbor structure successfully created", getName().c_str());
+                // OMPL_INFORM("%s: Nearest neighbor structure successfully created", getName().c_str());
                 // boost::copy_graph(g_full_lattice_, g_);
                 OMPL_INFORM("%s: Reset lattice, graph has %u vertices", getName().c_str(), boost::num_vertices(g_));
             }
@@ -196,7 +204,7 @@ namespace ompl {
                     verticesToRemove.push_back(*vi);
             }
 
-            OMPL_INFORM("constructSolution: removing %u vertices", verticesToRemove.size());
+            // OMPL_INFORM("constructSolution: removing %u vertices", verticesToRemove.size());
 
             // We remove *all* invalid vertices.
             if (!verticesToRemove.empty())
@@ -229,10 +237,10 @@ namespace ompl {
             // check if lattice motion validator is chosen
             latticeMotionValidatorPtr_ = std::dynamic_pointer_cast<ompl::base::LatticeMotionValidator>(si_->getMotionValidator());
 
-            OMPL_INFORM("Enter solve function...");
+            // OMPL_INFORM("Enter solve function...");
             checkValidity();
 
-            OMPL_INFORM("Validity checked succesfully.");
+            // OMPL_INFORM("Validity checked succesfully.");
 
             // create the state lattice if it does not exist yet
             // TODO: add ptc to buld lattice function / combine solving and building lattice with both using ptc?
@@ -243,7 +251,7 @@ namespace ompl {
             }
 
 
-            OMPL_INFORM("Lattice built succesfully.");
+            // OMPL_INFORM("Lattice built succesfully.");
 
             auto *goal = dynamic_cast<base::GoalSampleableRegion *>(pdef_->getGoal().get());
 
@@ -283,7 +291,7 @@ namespace ompl {
                 }
             }
 
-            OMPL_INFORM("Start and goal added succesfully.");
+            // OMPL_INFORM("Start and goal added succesfully.");
 
 
             // either check vertices now, or only for A* solutions
@@ -306,11 +314,11 @@ namespace ompl {
                 if (solution) 
                 {
                     someSolutionFound = true;
-                    OMPL_INFORM("Some solution was found.");
+                    // OMPL_INFORM("Some solution was found.");
                     base::Cost c = solution->cost(opt_);
                     if (opt_->isSatisfied(c))
                     {
-                        OMPL_INFORM("solve: opt is satisfied...");
+                        // OMPL_INFORM("solve: opt is satisfied...");
                         fullyOptimized = true;
                         bestSolution = solution;
                         bestCost = c;
@@ -318,7 +326,7 @@ namespace ompl {
                     }
                     if (opt_->isCostBetterThan(c, bestCost))
                     {
-                        OMPL_INFORM("solve: new best cost...");
+                        // OMPL_INFORM("solve: new best cost...");
                         bestSolution = solution;
                         bestCost = c;
                     }
@@ -327,7 +335,7 @@ namespace ompl {
                 ++goalIndex;
                 if (goalIndex >= goalM_.size()) 
                 {
-                    OMPL_INFORM("solve: all goals tested for startindex %u...", startIndex);
+                    // OMPL_INFORM("solve: all goals tested for startindex %u...", startIndex);
                     goalIndex = 0;
                     ++startIndex;
                     if (startIndex >= startM_.size()) // all start / goal combinations have been tried
@@ -348,18 +356,18 @@ namespace ompl {
 
             if (bestSolution)
             {
-                OMPL_INFORM("Add best solution as solution path");
+                // OMPL_INFORM("Add best solution as solution path");
                 base::PlannerSolution psol(bestSolution);
                 psol.setPlannerName(getName());
                 // if the solution was optimized, we mark it as such
                 psol.setOptimized(opt_, bestCost, fullyOptimized);
                 pdef_->addSolutionPath(psol);
-                OMPL_INFORM("Solution path added");
+                // OMPL_INFORM("Solution path added");
             }
 
             // OMPL_INFORM("%s: Created %u states", getName().c_str(), boost::num_vertices(g_) - nrStartStates);
 
-            OMPL_INFORM("Solve completed.");
+            // OMPL_INFORM("Solve completed.");
             return base::PlannerStatus::EXACT_SOLUTION;
         }
 
@@ -396,7 +404,7 @@ namespace ompl {
             // OMPL_INFORM("buildLattic: Init state");
             // lssPtr_->printState(vertexStateProperty_[v]);
 
-            OMPL_INFORM("buildLattice: init build lattice algorithm");
+            // OMPL_INFORM("buildLattice: init build lattice algorithm");
 
             
 
@@ -447,7 +455,7 @@ namespace ompl {
                 }
             }
 
-            OMPL_INFORM("buildLattice: lattice built successfully");
+            // OMPL_INFORM("buildLattice: lattice built successfully");
 
             g_full_lattice_.clear();
             g_full_lattice_ = g_;
@@ -465,7 +473,7 @@ namespace ompl {
             std::vector<Vertex> neighbors;
             nn_->nearestK(v, nearestK_, neighbors);
 
-            OMPL_INFORM("Adding non lattice states ");
+            // OMPL_INFORM("Adding non lattice states ");
             for(const auto& neighbor : neighbors)
             {
                 if(!end) 
@@ -475,8 +483,8 @@ namespace ompl {
                     edgeWeightProperty_[edge.first] = opt_->motionCost(vertexStateProperty_[v], vertexStateProperty_[neighbor]);
                     edgePrimitiveProperty_[edge.first] = -1;
 
-                    OMPL_INFORM("Connected to: ");
-                    si_->printState(vertexStateProperty_[neighbor]);
+                    // OMPL_INFORM("Connected to: ");
+                    // si_->printState(vertexStateProperty_[neighbor]);
                 }
                 else 
                 {
@@ -485,8 +493,8 @@ namespace ompl {
                     edgeWeightProperty_[edge.first] = opt_->motionCost(vertexStateProperty_[neighbor], vertexStateProperty_[v]);
                     edgePrimitiveProperty_[edge.first] = -1;
 
-                    OMPL_INFORM("Connected to: ");
-                    si_->printState(vertexStateProperty_[neighbor]);
+                    // OMPL_INFORM("Connected to: ");
+                    // si_->printState(vertexStateProperty_[neighbor]);
                 }
             }
 
@@ -497,12 +505,12 @@ namespace ompl {
 
         ompl::base::PathPtr StateLattice::constructSolution(const base::PlannerTerminationCondition &ptc, const Vertex &start, const Vertex &goal)
         {
-            OMPL_INFORM("constructSolution: Starting construct solution...");
+            // OMPL_INFORM("constructSolution: Starting construct solution...");
             size_t counter=1;
 
             while(true)
             {
-                OMPL_INFORM("constructSolution: init try %u", counter);
+                // OMPL_INFORM("constructSolution: init try %u", counter);
                 ++counter;
                 // Need to update the index map here, becuse nodes may have been removed and
                 // the numbering will not be 0 .. N-1 otherwise.
@@ -535,13 +543,13 @@ namespace ompl {
                 }
                 catch (AStarFoundGoal &)
                 {
-                    OMPL_INFORM("Astar found goal");
+                    // OMPL_INFORM("Astar found goal");
                 }
                 if (prev[goal] == goal) { // no solution found
-                    OMPL_INFORM("constructSolution: no solution found");
+                    // OMPL_INFORM("constructSolution: no solution found");
                     return base::PathPtr(); // shared_ptr -> default is nullptr
                 }
-                OMPL_INFORM("constructSolution: solution found, check for collisions now");
+                // OMPL_INFORM("constructSolution: solution found, check for collisions now");
 
                 // First, get the solution states without copying them, and check them for validity.
                 // We do all the node validity checks for the vertices, as this may remove a larger
@@ -561,7 +569,7 @@ namespace ompl {
                         states.push_back(st);
                 }
 
-                OMPL_INFORM("constructSolution: have to remove %u vertices", verticesToRemove.size());
+                // OMPL_INFORM("constructSolution: have to remove %u vertices", verticesToRemove.size());
 
                 // We remove *all* invalid vertices.
                 if (!verticesToRemove.empty())
@@ -578,7 +586,7 @@ namespace ompl {
                     continue; // try again with new A* query
                 }
 
-                OMPL_INFORM("constructSolution: no more vertices to remove", verticesToRemove.empty());
+                // OMPL_INFORM("constructSolution: no more vertices to remove", verticesToRemove.empty());
 
                 // start is checked for validity already
                 states.push_back(vertexStateProperty_[start]);
@@ -587,7 +595,7 @@ namespace ompl {
                 std::vector<const base::State *>::const_iterator prevState = states.begin(), state = prevState + 1;
                 std::vector<int> primitive_ids;
                 primitive_ids.push_back(-1);
-                OMPL_INFORM("constructSolution: checking edges now");
+                // OMPL_INFORM("constructSolution: checking edges now");
                 Vertex prevVertex = goal, pos = prev[goal];
                 bool all_valid = true;
                 do
@@ -612,7 +620,7 @@ namespace ompl {
                     }
                     if ((evd & VALIDITY_TRUE) == 0)
                     {
-                        OMPL_INFORM("constructSolution: Removing edge.");
+                        // OMPL_INFORM("constructSolution: Removing edge.");
                         boost::remove_edge(e, g_);
                         all_valid = false;
                         break; // try again with new A* query
@@ -626,7 +634,7 @@ namespace ompl {
                 if(!all_valid)
                     continue;
 
-                OMPL_INFORM("constructSolution: path is valid, construct solution...", verticesToRemove.empty());
+                // OMPL_INFORM("constructSolution: path is valid, construct solution...", verticesToRemove.empty());
 
                 auto p(std::make_shared<PathGeometric>(si_));
 

@@ -182,6 +182,8 @@ namespace ompl
             /** \brief Build a state lattice based on the motion primitives and store it in g_ */
             void buildLattice();
 
+            void setupNearestNeighbors();
+
             /** \brief Add start and goal vertices to the lattice graph */
             bool addStartAndGoalVertices();
 
