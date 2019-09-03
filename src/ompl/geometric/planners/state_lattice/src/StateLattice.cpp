@@ -46,6 +46,8 @@
 #include "boost/graph/copy.hpp"
 #include <boost/graph/astar_search.hpp>
 #include <boost/graph/lookup_edge.hpp>
+#include <boost/property_map/vector_property_map.hpp>
+#include <boost/foreach.hpp>
 
 // STL
 #include <memory>
@@ -149,7 +151,14 @@ namespace ompl {
             for (auto i : goalM_)
                 data.addGoalVertex(base::PlannerDataVertex(vertexStateProperty_[i], 1));
 
-            // TODO: add edges, note there might be a problem, since PlannerData documentation states that "only a single directed edge conntects two vertices"
+            // Adding edges and all other vertices simultaneously
+            boost::graph_traits<Graph>::edge_iterator ei, eend;
+            for(boost::tie(ei, eend) = boost::edges(g_); ei != eend; ++ei)
+            {
+                const Vertex v1 = boost::source(*ei, g_);
+                const Vertex v2 = boost::target(*ei, g_);
+                data.addEdge(base::PlannerDataVertex(vertexStateProperty_[v1]), base::PlannerDataVertex(vertexStateProperty_[v2]));
+            }
         }
 
         void StateLattice::clear()
