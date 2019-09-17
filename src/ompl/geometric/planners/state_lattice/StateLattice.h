@@ -228,17 +228,22 @@ namespace ompl
              */
             std::size_t nearest_k_{10}; // TODO add support for nearest_r_ and setting nearest_k_ to different values
 
-            /** \brief Flag to check whether a lattice has already been built */
+            /** \brief Flag whether to check whether a lattice has already been built */
             bool lattice_built_{false};
 
+            /** \brief Pointer to lattice state space */
             base::LatticeStateSpacePtr lssPtr_{nullptr};
 
+            /** \brief Maximum number of vertices to create */
             size_t maxVertices_{100000};
 
+            /** \brief K for using k-nearest neighbor when connecting start and goal positions */
             size_t nearestK_{10};
 
+            /** \brief Flag whether to check all vertices before doing graph search */
             bool checkVerticesBefore_{true};
 
+            /** \brief Pointer to the motion validator function */
             std::shared_ptr<ompl::base::LatticeMotionValidator> latticeMotionValidatorPtr_ {nullptr};
         };
     }
