@@ -103,10 +103,7 @@ public:
 
         if (ss_->haveSolutionPath())
         {
-            ss_->simplifySolution();
             og::PathGeometric &p = ss_->getSolutionPath();
-            ss_->getPathSimplifier()->simplifyMax(p);
-            ss_->getPathSimplifier()->smoothBSpline(p);
             return true;
         }
 
