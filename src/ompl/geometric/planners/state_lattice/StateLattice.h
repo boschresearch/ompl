@@ -226,7 +226,7 @@ namespace ompl
             /** \brief Number of nearest neighbors used for connecting start and end
              * vertices to the lattice.
              */
-            std::size_t nearest_k_{10}; // TODO add support for nearest_r_ and setting nearest_k_ to different values
+            std::size_t nearestK_{20}; // TODO add support for nearest_r_ and setting nearest_k_ to different values
 
             /** \brief Flag whether to check whether a lattice has already been built */
             bool lattice_built_{false};
@@ -236,9 +236,6 @@ namespace ompl
 
             /** \brief Maximum number of vertices to create */
             size_t maxVertices_{100000};
-
-            /** \brief K for using k-nearest neighbor when connecting start and goal positions */
-            size_t nearestK_{10};
 
             /** \brief Flag whether to check all vertices before doing graph search */
             bool checkVerticesBefore_{true};

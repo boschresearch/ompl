@@ -160,7 +160,7 @@ namespace ompl
 
         bool LatticeStateSpace::hasSymmetricInterpolate() const 
         {
-            // since the interpolate depends on the motion primtiive this is generally not true
+            // since the interpolate depends on the motion primitive this is generally not true
             return false;
         }
 
@@ -170,7 +170,8 @@ namespace ompl
             const auto *rto = static_cast<const StateType *>(to);
             StateType *rstate = static_cast<StateType *>(state);
             int motionPrimitiveIdFrom = rfrom->getPrimitiveId();
-            if(motionPrimitiveIdFrom == -1) // no motion primitive -> interpolate using the underlying space
+            // TODO, remove the true, update distance function, distance->interpolate->distance->interpolate->distance should always yield (approx.) same distance, right now not the case!
+            if(true || motionPrimitiveIdFrom == -1) // no motion primitive -> interpolate using the underlying space
             {
                 space_->interpolate(rfrom->getState(), rto->getState(), t, rstate->getState());
             }

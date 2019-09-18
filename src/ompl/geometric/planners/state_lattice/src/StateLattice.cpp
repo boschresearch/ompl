@@ -75,7 +75,7 @@ namespace ompl {
                 // TODO: add support to automatically replace the statespace with a newly created LatticeStateSpace
             }
 
-            // set the plannr specs
+            // set the planner specs
             specs_.directed = true; // directed, 
 
         }
@@ -93,7 +93,7 @@ namespace ompl {
                                             return si_->distance(vertexStateProperty_[a], vertexStateProperty_[b]);
                                         });
 
-                // OMPL_INFORM("Nearest neightbor datastructure initialized.");
+                // OMPL_INFORM("Nearest neighbour datastructure initialized.");
             }
         }
 
@@ -262,6 +262,12 @@ namespace ompl {
 
             // OMPL_INFORM("Lattice built succesfully.");
 
+            // either check vertices now, or only for A* solutions
+            // it depends on how costly the collision check, which way performs better
+            // also doing this before adding start and goal increases the probability of being able to connect start and goal
+            if(checkVerticesBefore_)
+                checkVertices();
+
             auto *goal = dynamic_cast<base::GoalSampleableRegion *>(pdef_->getGoal().get());
 
             if (goal == nullptr)
@@ -303,10 +309,6 @@ namespace ompl {
             // OMPL_INFORM("Start and goal added succesfully.");
 
 
-            // either check vertices now, or only for A* solutions
-            // it depends on how costly the collision check, which way performs better
-            if(checkVerticesBefore_)
-                checkVertices();
 
             size_t startIndex = 0;
             size_t goalIndex = 0;
@@ -422,7 +424,7 @@ namespace ompl {
                 Vertex curVertex = toBeExpanded.back();
                 base::State* curState = vertexStateProperty_[curVertex];
 
-                // OMPL_INFORM("buildLattice: state expanded, toBeExpanded size: %u, total size: %u", toBeExpanded.size(), boost::num_vertices(g_));
+                OMPL_INFORM("buildLattice: state expanded, toBeExpanded size: %u, total size: %u", toBeExpanded.size(), boost::num_vertices(g_));
                 // lssPtr_->printState(vertexStateProperty_[curVertex]);
 
                 toBeExpanded.pop_back();
@@ -439,6 +441,7 @@ namespace ompl {
                         auto stateVertexPairIt = stateVertexMap.find(stateHash);
                         Vertex endVertex;
                         if(stateVertexPairIt == stateVertexMap.end()) { // vertex does not exist yet
+                            OMPL_INFORM("buildLattice: %s, new state", stateHash.c_str());
                             endVertex = boost::add_vertex(g_);
                             stateVertexMap[stateHash] = endVertex;
                             vertexStateProperty_[endVertex] = endState; 
@@ -450,6 +453,7 @@ namespace ompl {
                             toBeExpanded.push_back(endVertex);
                         } 
                         else {
+                            // OMPL_INFORM("buildLattice: %s, state already exists", stateHash.c_str());
                             endVertex = stateVertexPairIt->second;
                         }
 
