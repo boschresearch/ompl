@@ -47,6 +47,7 @@ if (OMPL_BUILD_DEMOS)
     add_ompl_demo(demo_ConstrainedPlanningKinematicChain constraint/ConstrainedPlanningKinematicChain.cpp)
 
     add_ompl_demo(demo_DeterministicSampling DeterministicSampling.cpp)
+    add_ompl_demo(demo_DeterministicSamplingPlanning DeterministicSamplingPlanning.cpp)
 
     if (OMPL_EXTENSION_OPENDE)
         add_ompl_demo(demo_OpenDERigidBodyPlanning OpenDERigidBodyPlanning.cpp)
