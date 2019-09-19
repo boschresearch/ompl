@@ -226,7 +226,7 @@ namespace ompl
             /** \brief Number of nearest neighbors used for connecting start and end
              * vertices to the lattice.
              */
-            std::size_t nearestK_{20}; // TODO add support for nearest_r_ and setting nearest_k_ to different values
+            std::size_t nearestK_{40}; // TODO add support for nearest_r_ and setting nearest_k_ to different values
 
             /** \brief Flag whether to check whether a lattice has already been built */
             bool lattice_built_{false};

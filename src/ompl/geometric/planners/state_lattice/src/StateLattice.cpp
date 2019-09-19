@@ -221,7 +221,7 @@ namespace ompl {
                 // Remember the current neighbors.
                 for (auto it = verticesToRemove.begin(); it != verticesToRemove.end(); ++it)
                 {
-                    // Remove vertex from nearest neighbors data structure.
+                    // Remove vertex from nearest neighbors data structure, we don't remove from nearest neighbor since it's very slow (why??)
                     // nn_->remove(*it);
                     // Remove all edges.
                     boost::clear_vertex(*it, g_);
@@ -260,13 +260,7 @@ namespace ompl {
             }
 
 
-            // OMPL_INFORM("Lattice built succesfully.");
-
-            // either check vertices now, or only for A* solutions
-            // it depends on how costly the collision check, which way performs better
-            // also doing this before adding start and goal increases the probability of being able to connect start and goal
-            if(checkVerticesBefore_)
-                checkVertices();
+            // OMPL_INFORM("Lattice built successfully.");
 
             auto *goal = dynamic_cast<base::GoalSampleableRegion *>(pdef_->getGoal().get());
 
@@ -306,9 +300,14 @@ namespace ompl {
                 }
             }
 
-            // OMPL_INFORM("Start and goal added succesfully.");
+            // either check vertices now, or only for A* solutions
+            // it depends on how costly the collision check, which way performs better
+            // also doing this before adding start and goal increases the probability of being able to connect start and goal
+            if(checkVerticesBefore_)
+                checkVertices();
 
 
+            // OMPL_INFORM("Start and goal added successfully.");
 
             size_t startIndex = 0;
             size_t goalIndex = 0;
