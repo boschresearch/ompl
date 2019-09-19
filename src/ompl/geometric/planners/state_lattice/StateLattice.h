@@ -47,6 +47,7 @@
 #include <boost/graph/adjacency_list.hpp>
 
 // STL
+#include <set>
 
 namespace ompl
 {
@@ -155,6 +156,8 @@ namespace ompl
             void clearQuery();
 
             void resetLattice();
+
+            void setCollisionCheckStrategy(bool verticesBefore, bool edgesBefore);
             
 
             base::PlannerStatus solve(const base::PlannerTerminationCondition &ptc) override;
@@ -167,6 +170,9 @@ namespace ompl
 
             /** \brief Check and remove all invalid vertices from the lattice */
             void checkVertices();
+
+            /** \brief Check and remove all invalid edges from the lattice */
+            void checkEdges();
 
             // VALIDITY_FALSE not required, since such edges / vertices will be removed
 
@@ -239,6 +245,9 @@ namespace ompl
 
             /** \brief Flag whether to check all vertices before doing graph search */
             bool checkVerticesBefore_{true};
+
+            /** \brief Flag whether to check all edges before doing graph search */
+            bool checkEdgesBefore_{false};
 
             /** \brief Pointer to the motion validator function */
             std::shared_ptr<ompl::base::LatticeMotionValidator> latticeMotionValidatorPtr_ {nullptr};

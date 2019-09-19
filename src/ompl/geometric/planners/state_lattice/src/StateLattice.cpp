@@ -213,7 +213,7 @@ namespace ompl {
                     verticesToRemove.push_back(*vi);
             }
 
-            // OMPL_INFORM("constructSolution: removing %u vertices", verticesToRemove.size());
+            OMPL_INFORM("checkVertices: removing %u vertices", verticesToRemove.size());
 
             // We remove *all* invalid vertices.
             if (!verticesToRemove.empty())
@@ -229,6 +229,71 @@ namespace ompl {
                     boost::remove_vertex(*it, g_);
                 }
             }
+        }
+
+
+        void StateLattice::checkEdges()
+        {
+            remove_edge_if([this](Edge e)->bool {
+                unsigned int &evd = edgeValidityProperty_[e];
+                int primitive_id = edgePrimitiveProperty_[e];
+                if ((evd & VALIDITY_TRUE) == 0)
+                {
+                    ompl::base::State* fromState = vertexStateProperty_[source(e, g_)];
+                    ompl::base::State* toState = vertexStateProperty_[target(e, g_)];
+                    if(latticeMotionValidatorPtr_ != nullptr && primitive_id != -1) 
+                    {
+                        if(latticeMotionValidatorPtr_->checkMotion(fromState, lssPtr_->getMotionPrimitive(primitive_id))) 
+                        {
+                            evd |= VALIDITY_TRUE;
+                            return false;
+                        }
+                    }
+                    else if (si_->checkMotion(fromState, toState)) 
+                    {
+                        evd |= VALIDITY_TRUE;
+                        return false;
+                    }
+                }
+                if ((evd & VALIDITY_TRUE) == 0)
+                    return true;
+                return false;
+            }, g_);
+
+
+            // std::vector<Edge> edgesToRemove;
+            // boost::graph_traits<Graph>::edge_iterator ei, eend;
+            // for (boost::tie(ei, eend) = boost::edges(g_); ei != eend; ++ei) {
+            //     unsigned int &evd = edgeValidityProperty_[*ei];
+            //     int primitive_id = edgePrimitiveProperty_[*ei];
+            //     if ((evd & VALIDITY_TRUE) == 0)
+            //     {
+            //         ompl::base::State* fromState = vertexStateProperty_[source(*ei, g_)];
+            //         ompl::base::State* toState = vertexStateProperty_[target(*ei, g_)];
+            //         if(latticeMotionValidatorPtr_ != nullptr && primitive_id != -1) 
+            //         {
+            //             if(latticeMotionValidatorPtr_->checkMotion(fromState, lssPtr_->getMotionPrimitive(primitive_id)))
+            //                 evd |= VALIDITY_TRUE;
+            //         }
+            //         else if (si_->checkMotion(fromState, toState))
+            //             evd |= VALIDITY_TRUE;
+            //     }
+            //     if ((evd & VALIDITY_TRUE) == 0)
+            //         edgesToRemove.push_back(*ei);
+            // }
+
+            // OMPL_INFORM("checkEdges: removing %u edges", edgesToRemove.size());
+
+            // // We remove *all* invalid vertices.
+            // if (!edgesToRemove.empty())
+            // {
+            //     // Remember the current neighbors.
+            //     for (auto it = edgesToRemove.begin(); it != edgesToRemove.end(); ++it)
+            //     {
+            //         // Remove the edge.
+            //         boost::remove_edge(*it, g_);
+            //     }
+            // }
         }
 
         void StateLattice::clearQuery()
@@ -306,6 +371,9 @@ namespace ompl {
             if(checkVerticesBefore_)
                 checkVertices();
 
+            if(checkEdgesBefore_)
+                checkEdges();
+
 
             // OMPL_INFORM("Start and goal added successfully.");
 
@@ -374,6 +442,10 @@ namespace ompl {
                 pdef_->addSolutionPath(psol);
                 // OMPL_INFORM("Solution path added");
             }
+            else 
+            {
+                return base::PlannerStatus::TIMEOUT;
+            }
 
             // OMPL_INFORM("%s: Created %u states", getName().c_str(), boost::num_vertices(g_) - nrStartStates);
 
@@ -392,10 +464,10 @@ namespace ompl {
 
         void StateLattice::buildLattice()
         {
-            // OMPL_INFORM("buildLattice: Creating lazy lattice");
+            OMPL_INFORM("buildLattice: Creating lazy lattice");
             lattice_built_ = true;
 
-            std::map<std::string, Vertex> stateVertexMap;
+            std::unordered_map<std::string, Vertex> stateVertexMap;
 
             Vertex v = boost::add_vertex(g_);
             // OMPL_INFORM("buildLattice: Added first vertex to graph");
@@ -476,6 +548,12 @@ namespace ompl {
             // TODO: add store lattice to file support
         }
 
+        void StateLattice::setCollisionCheckStrategy(bool verticesBefore, bool edgesBefore) 
+        {
+            checkVerticesBefore_ = verticesBefore;
+            checkEdgesBefore_ = edgesBefore;
+        }
+
         StateLattice::Vertex StateLattice::addNonLatticeVertex(base::State *state, bool end)
         {
             // first create the vertex and add all properties
@@ -517,7 +595,7 @@ namespace ompl {
 
         ompl::base::PathPtr StateLattice::constructSolution(const base::PlannerTerminationCondition &ptc, const Vertex &start, const Vertex &goal)
         {
-            // OMPL_INFORM("constructSolution: Starting construct solution...");
+            OMPL_INFORM("constructSolution: Starting construct solution...");
             size_t counter=1;
 
             while(true)
@@ -558,7 +636,7 @@ namespace ompl {
                     // OMPL_INFORM("Astar found goal");
                 }
                 if (prev[goal] == goal) { // no solution found
-                    // OMPL_INFORM("constructSolution: no solution found");
+                    OMPL_INFORM("constructSolution: no solution found");
                     return base::PathPtr(); // shared_ptr -> default is nullptr
                 }
                 // OMPL_INFORM("constructSolution: solution found, check for collisions now");
@@ -615,6 +693,8 @@ namespace ompl {
                     // TODO: how does this handle parallel edges??
                     // check https://stackoverflow.com/questions/21214091/find-multiple-edges-given-2-vertices-in-boost-graph for 
                     // some hints
+
+                    // TODO: double check if this works at start and end, I suspect that right now it might do one extra check at end
 
                     Edge e = boost::lookup_edge(pos, prevVertex, g_).first;
                     unsigned int &evd = edgeValidityProperty_[e];

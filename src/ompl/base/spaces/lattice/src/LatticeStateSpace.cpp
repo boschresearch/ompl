@@ -200,7 +200,10 @@ namespace ompl
 
         const State *LatticeStateSpace::getInitialState() const
         {
-            OMPL_INFORM("Get initial state...");
+            if(initialState_ == nullptr) {
+                OMPL_WARN("No initial state specified, returning default state...");
+                return allocState();
+            }
             return initialState_;
         }
 
