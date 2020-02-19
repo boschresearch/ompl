@@ -201,6 +201,21 @@ namespace ompl
                 connectionFilter_ = connectionFilter;
             }
 
+            /** \brief Attempt to connect disjoint components in the roadmap
+                using random bouncing motions (the PRM expansion step) until the
+                given condition evaluates true. */
+            void setExpansionStrategy(bool e) {
+                expansionEnabled_ = e;
+            }
+
+            /** \brief Sets the total number of samples to be generated, -1 to deactivate the check.
+                       Only used for growRoadmap step, not for expandRoadmap step. Can be used in
+                       conjunction with setExpansionStrategy(false) to get a roadmap based on a fixed
+                       number of (valid and non-valid) samples. */
+            void setMaxSampleAttempts(int maxSampleAttempts) {
+                remainingSampleAttempts_ = maxSampleAttempts;
+            }
+
             void getPlannerData(base::PlannerData &data) const override;
 
             /** \brief While the termination condition allows, this function will construct the roadmap (using
@@ -409,6 +424,13 @@ namespace ompl
 
             /** \brief Function that can reject a milestone connection */
             ConnectionFilter connectionFilter_;
+
+            /** \brief Flag indicating whether to perform expansion step or only grow step */
+            bool expansionEnabled_{true};
+
+            /** \brief Variable to keep track of remaining sample attempts.
+                       -1 means infinity. */
+            int remainingSampleAttempts_{-1};
 
             /** \brief Flag indicating whether the employed connection strategy was set by the user (or defaults are
              * assumed) */

@@ -112,6 +112,13 @@ namespace ompl
                 numSamples_ = numSamples;
             }
 
+            /** \brief Set the maximum number of samples the sampler should draw including
+                invalid samples. The default value is -1, which means infinite. */
+            void setMaxSampleAttempts(const unsigned int maxSampleAttempts)
+            {
+                maxSampleAttempts_ = maxSampleAttempts;
+            }
+
             /** \brief Get the number of states that the planner will sample */
             unsigned int getNumSamples() const
             {
@@ -435,6 +442,9 @@ namespace ompl
 
             /** \brief The number of samples to use when planning */
             unsigned int numSamples_{1000u};
+
+            /** \brief The number of samples to use when planning */
+            int maxSampleAttempts_{-1};
 
             /** \brief Number of collision checks performed by the algorithm */
             unsigned int collisionChecks_{0u};
