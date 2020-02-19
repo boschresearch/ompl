@@ -52,6 +52,8 @@ if (OMPL_BUILD_DEMOS)
     add_ompl_demo(demo_QuotientSpacePlanningHyperCube quotientspace/QuotientSpacePlanningHyperCube.cpp)
     add_ompl_demo(demo_QuotientSpacePlanningHyperCubeBenchmark quotientspace/QuotientSpacePlanningHyperCubeBenchmark.cpp)
 
+    add_ompl_demo(demo_StateLatticePlanning StateLatticePlanning.cpp)
+
     if (OMPL_EXTENSION_ODE)
         add_ompl_demo(demo_OpenDERigidBodyPlanning OpenDERigidBodyPlanning.cpp)
     endif()
