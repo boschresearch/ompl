@@ -40,8 +40,6 @@
 #include <ompl/geometric/planners/prm/PRMstar.h>
 #include <ompl/geometric/planners/state_lattice/StateLattice.h>
 #include <ompl/util/PPM.h>
-#include <ompl/base/samplers/DeterministicStateSampler.h>
-#include <ompl/base/samplers/deterministic/HaltonSequence.h>
 
 #include <ompl/config.h>
 
