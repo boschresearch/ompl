@@ -4,10 +4,13 @@
 
 - A C++14 compiler is now required. The minimum version of CMake required is now 3.5 and the minimum version of Boost supported is now 1.58.
 - All development now takes place on [Github](https://github.com/ompl/ompl). This used to be a git mirror of the mercurial repository on BitBucket, but since BitBucket is phasing out mercurial support the GitHub repo is now the main repo. All the old issues have been migrated to GitHub.
-- Added build targets for easily creating Docker images for OMPL, the [PlannerArena web server](http://plannerarena.org), and the [OMPL web app](http://omplapp.kavrakilab.org).
-- Added a new planner: [Quotient-Space RRT](quotientSpacePlanning.html).
+- Added build targets for easily creating Docker images for OMPL, the [PlannerArena web server](http://plannerarena.org), and the [OMPL web app](http://omplapp.kavrakilab.org). Docker images are available on [Docker Hub](https://hub.docker.com/u/kavrakilab).
+- Added new planners:
+  - [XXL](\ref gXXL)
+  - [ABIT*](\ref gABITstar)
+  - [Quotient-Space RRT](quotientSpacePlanning.html).
+- Added support for deterministic sampling. Halton sampling is included, other deterministic sampling methods can be added.
 - Added a new PlannerTerminationCondition called CostConvergenceTerminationCondition, which can be used to terminate asymptotically (near-)optimal planners based on convergence.
-- Repositories have been moved to GitHub.
 - Clean up ompl_benchmark_script.py for Python 3.
 - Updated PlannerArena again to work with latest versions of R dependencies.
 - Misc. bug and documentation fixes.
@@ -94,7 +97,7 @@
 - Added an option to turn off the path simplification in benchmarking.
 - Added support for parametrized benchmarks. Planner Arena can show performance across values for a given parameter.
 - Made it easier to get repeatable runs of an algorithm by enabling the user to set the seed of the *local* random number generators (i.e., not just the global seed).
-- The [OMPL blog](https://ompl.kavrakilab.org/blog.html) is now [Jekyll](http://www.jekyllrb.com)-based and hosted as a [repository on GitHub](https://github.com/ompl/blog). If you have a project that uses OMPL, you can send us a pull request (please check with us first whether it would be appropriate for the blog before you write content).
+- The [OMPL blog](https://ompl.kavrakilab.org/blog.html) is now [Jekyll](https://www.jekyllrb.com)-based and hosted as a [repository on GitHub](https://github.com/ompl/blog). If you have a project that uses OMPL, you can send us a pull request (please check with us first whether it would be appropriate for the blog before you write content).
 
 ## OMPL 1.0.0 (October 26, 2014)
 
@@ -157,7 +160,7 @@
 - Extended ProblemDefinition API to support path optimizing planners.
 - Added printAsMatrix method to ompl::geometric::PathGeometric and ompl::control::PathControl to facilitate plotting of paths. Added a [tutorial on path visualization](pathVisualization.html).
 - Added more [demo programs](group__demos.html).
-- Use the officially released version of [OdeInt](http://www.boost.org/libs/numeric/odeint) that comes with Boost 1.53 for numerical integration. The bundled version of OdeInt is not used or installed if the user has Boost >= 1.53 installed.
+- Use the officially released version of [OdeInt](https://www.boost.org/libs/numeric/odeint) that comes with Boost 1.53 for numerical integration. The bundled version of OdeInt is not used or installed if the user has Boost >= 1.53 installed.
 - Updated Py++ toolchain (gccxml, pygccxml, pyplusplus). If you use gcc 4.7/4.8 or Boost 1.54, you need to run "make installpyplusplus" again.
 - Bug fixes.
 

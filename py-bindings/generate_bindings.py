@@ -613,6 +613,8 @@ class ompl_geometric_generator_t(code_generator_t):
         self.replace_member_functions(self.ompl_ns.member_functions('print'))
         # print paths as matrices
         self.replace_member_functions(self.ompl_ns.member_functions('printAsMatrix'))
+        # make settings printable
+        self.replace_member_functions(self.ompl_ns.member_functions('printSettings'))
         # print debug info
         self.replace_member_functions(self.ompl_ns.member_functions('printDebug'))
         self.ompl_ns.member_functions('freeGridMotions').exclude()
@@ -775,7 +777,6 @@ class ompl_geometric_generator_t(code_generator_t):
             # Exclude some functions from BIT* that cause some Py++ compilation problems
             # (#I don't know why this doesn't work):
             self.ompl_ns.class_('BITstar').member_functions('getEdgeQueue').exclude()
-            self.ompl_ns.class_('BITstar').member_functions('getVertexQueue').exclude()
         except declaration_not_found_t:
             pass
 
