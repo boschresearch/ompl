@@ -369,17 +369,12 @@ void ompl::geometric::PRM::growRoadmap(const base::PlannerTerminationCondition &
                 if (remainingSampleAttempts_ == -1)
                 {
                     found = sampler_->sample(workState);
-                    std::cout << "Found  remainingSampleAttempts_ : " << remainingSampleAttempts_ << std::endl;
                 }
                 else
                 {
                     sampler_->setNrAttempts(remainingSampleAttempts_);
                     found = sampler_->sample(workState);
                     remainingSampleAttempts_ -= sampler_->getLastNrAttempts();
-
-                    std::cout << "NOT Found remainingSampleAttempts_ : " << remainingSampleAttempts_
-                              << ", last nr attempt: " << sampler_->getLastNrAttempts() << std::endl;
-
                     /* although this should not happen, just to make sure we don't get to
                        the special case of remainingSamples_ == -1, which means infinite samples.*/
                     if (remainingSampleAttempts_ < 0)
@@ -516,6 +511,9 @@ ompl::base::PlannerStatus ompl::geometric::PRM::solve(const base::PlannerTermina
     addedNewSolution_ = false;
     base::PathPtr sol;
     std::thread slnThread([this, &ptc, &sol] { checkForSolution(ptc, sol); });
+
+    // Resetting the remainingSampleAttempts
+    remainingSampleAttempts_ = maxSampleAttempts_;
 
     // construct new planner termination condition that fires when the given ptc is true, or a solution is found
     base::PlannerTerminationCondition ptcOrSolutionFound(

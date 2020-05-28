@@ -53,6 +53,8 @@ bool ompl::base::UniformValidStateSampler::sample(State *state)
         valid = si_->isValid(state);
         ++attempts;
     } while (!valid && attempts < attempts_);
+    lastAttempts_ = attempts;
+
     return valid;
 }
 

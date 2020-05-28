@@ -182,7 +182,6 @@ namespace ompl
              */
             unsigned int getMaxNearestNeighbors() const;
 
-
             /** \brief Set the function that can reject a milestone connection.
 
              \par The given function is called immediately before a connection
@@ -204,7 +203,8 @@ namespace ompl
             /** \brief Attempt to connect disjoint components in the roadmap
                 using random bouncing motions (the PRM expansion step) until the
                 given condition evaluates true. */
-            void setExpansionStrategy(bool e) {
+            void setExpansionStrategy(bool e)
+            {
                 expansionEnabled_ = e;
             }
 
@@ -212,8 +212,9 @@ namespace ompl
                        Only used for growRoadmap step, not for expandRoadmap step. Can be used in
                        conjunction with setExpansionStrategy(false) to get a roadmap based on a fixed
                        number of (valid and non-valid) samples. */
-            void setMaxSampleAttempts(int maxSampleAttempts) {
-                remainingSampleAttempts_ = maxSampleAttempts;
+            void setMaxSampleAttempts(int maxSampleAttempts)
+            {
+                maxSampleAttempts_ = maxSampleAttempts;
             }
 
             void getPlannerData(base::PlannerData &data) const override;
@@ -342,7 +343,8 @@ namespace ompl
 
             /** \brief (Assuming that there is always an approximate solution), finds an
              * approximate solution. */
-            ompl::base::Cost constructApproximateSolution(const std::vector<Vertex> &starts, const std::vector<Vertex> &goals, base::PathPtr &solution);
+            ompl::base::Cost constructApproximateSolution(const std::vector<Vertex> &starts,
+                                                          const std::vector<Vertex> &goals, base::PathPtr &solution);
 
             /** \brief Returns the value of the addedNewSolution_ member. */
             bool addedNewSolution() const;
@@ -417,7 +419,8 @@ namespace ompl
 
             /** \brief Data structure that maintains the connected components */
             boost::disjoint_sets<boost::property_map<Graph, boost::vertex_rank_t>::type,
-                                 boost::property_map<Graph, boost::vertex_predecessor_t>::type> disjointSets_;
+                                 boost::property_map<Graph, boost::vertex_predecessor_t>::type>
+                disjointSets_;
 
             /** \brief Function that returns the milestones to attempt connections with */
             ConnectionStrategy connectionStrategy_;
@@ -431,6 +434,9 @@ namespace ompl
             /** \brief Variable to keep track of remaining sample attempts.
                        -1 means infinity. */
             int remainingSampleAttempts_{-1};
+
+            /** \brief Max sample attempts */
+            int maxSampleAttempts_{0};
 
             /** \brief Flag indicating whether the employed connection strategy was set by the user (or defaults are
              * assumed) */
