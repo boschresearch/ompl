@@ -435,8 +435,8 @@ namespace ompl
                        -1 means infinity. */
             int remainingSampleAttempts_{-1};
 
-            /** \brief Max sample attempts */
-            int maxSampleAttempts_{0};
+            /** \brief Max sample attempts, -1 means infinity */
+            int maxSampleAttempts_{-1};
 
             /** \brief Flag indicating whether the employed connection strategy was set by the user (or defaults are
              * assumed) */

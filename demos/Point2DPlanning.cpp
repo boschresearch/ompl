@@ -88,9 +88,9 @@ public:
                 // PRMstar can use the deterministic sampling
                 std::shared_ptr<og::PRMstar> PRMstar_ptr = std::make_shared<og::PRMstar>(ss_->getSpaceInformation());
                 // We can remove the random expansion strategy
-                PRMstar_ptr->setExpansionStrategy(false);
-                // // And decide to draw a maximum number of samples
-                PRMstar_ptr->setMaxSampleAttempts(2000);
+                PRMstar_ptr->setExpansionStrategy(true);
+                // And decide to draw a maximum number of samples
+                PRMstar_ptr->setMaxSampleAttempts(5000);
                 ss_->setPlanner(PRMstar_ptr);
                 space->setStateSamplerAllocator(std::bind(&Plane2DEnvironment::allocateHaltonStateSamplerRealVector,
                                                           this, std::placeholders::_1, 2,
