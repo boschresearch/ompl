@@ -102,19 +102,19 @@ namespace ompl
 
             void getPlannerData(base::PlannerData &data) const override;
 
-            /** \brief Set the number of states that the planner should sample.
-                The planner will sample this number of states in addition to the
-                initial states. If any of the goal states are not reachable from
-                the randomly sampled states, those goal states will also be
+            /** \brief Set the number of collision-free states that the planner should sample.
+                setMaxSampleAttempts allows you to set the maximum number of samples that can be drawn from the
+               configuration space. The planner will sample this number of states in addition to the initial states. If
+               any of the goal states are not reachable from the randomly sampled states, those goal states will also be
                 added. The default value is 1000 */
             void setNumSamples(const unsigned int numSamples)
             {
                 numSamples_ = numSamples;
             }
 
-            /** \brief Set the maximum number of samples the sampler should draw including
+            /** \brief Set the maximum number of samples to draw including
                 invalid samples. The default value is -1, which means infinite. */
-            void setMaxSampleAttempts(const unsigned int maxSampleAttempts)
+            void setMaxSampleAttempts(const int maxSampleAttempts)
             {
                 maxSampleAttempts_ = maxSampleAttempts;
             }
@@ -238,8 +238,7 @@ namespace ompl
                 Motion() = default;
 
                 /** \brief Constructor that allocates memory for the state */
-                Motion(const base::SpaceInformationPtr &si)
-                  : state_(si->allocState())
+                Motion(const base::SpaceInformationPtr &si) : state_(si->allocState())
                 {
                 }
 

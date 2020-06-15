@@ -411,9 +411,6 @@ void ompl::geometric::PRM::checkForSolution(const base::PlannerTerminationCondit
         // Sleep for 1ms
         if (!addedNewSolution_)
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-        if (remainingSampleAttempts_ == 0)
-            break;
     }
 }
 
@@ -569,13 +566,12 @@ void ompl::geometric::PRM::constructRoadmap(const base::PlannerTerminationCondit
     {
         // maintain a 2:1 ratio for growing/expansion of roadmap
         // call growRoadmap() twice as long for every call of expandRoadmap()
-        if (grow || !expansionEnabled_)
+        if (grow)
             growRoadmap(base::plannerOrTerminationCondition(
                             ptc, base::timedPlannerTerminationCondition(2.0 * magic::ROADMAP_BUILD_TIME)),
                         xstates[0]);
-        else
+        else if (expansionEnabled_)
         {
-            // set time to 0 to make planner fully deterministic when deterministic sampler is used
             expandRoadmap(base::plannerOrTerminationCondition(
                               ptc, base::timedPlannerTerminationCondition(1 * magic::ROADMAP_BUILD_TIME)),
                           xstates);

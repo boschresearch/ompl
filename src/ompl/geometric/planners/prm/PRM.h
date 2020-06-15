@@ -200,15 +200,14 @@ namespace ompl
                 connectionFilter_ = connectionFilter;
             }
 
-            /** \brief Attempt to connect disjoint components in the roadmap
-                using random bouncing motions (the PRM expansion step) until the
-                given condition evaluates true. */
-            void setExpansionStrategy(bool e)
+            /** \brief  Enable or disable the intermittent expansion of the roadmap using expandRoadmap()
+            */
+            void setExpansionStrategy(bool enable)
             {
-                expansionEnabled_ = e;
+                expansionEnabled_ = enable;
             }
 
-            /** \brief Sets the total number of samples to be generated, -1 to deactivate the check.
+            /** \brief Set the total number of samples to be generated, -1 to deactivate the check.
                        Only used for growRoadmap step, not for expandRoadmap step. Can be used in
                        conjunction with setExpansionStrategy(false) to get a roadmap based on a fixed
                        number of (valid and non-valid) samples. */
@@ -220,8 +219,8 @@ namespace ompl
             void getPlannerData(base::PlannerData &data) const override;
 
             /** \brief While the termination condition allows, this function will construct the roadmap (using
-               growRoadmap() and expandRoadmap(),
-                maintaining a 2:1 ratio for growing/expansion of roadmap) */
+               growRoadmap() and expandRoadmap(), maintaining a 2:1 ratio for growing/expansion of roadmap). The
+               expandRoadmap() step can be disabled with setExpansionStrategy(). */
             void constructRoadmap(const base::PlannerTerminationCondition &ptc);
 
             /** \brief If the user desires, the roadmap can be

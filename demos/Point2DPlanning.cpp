@@ -39,6 +39,7 @@
 #include <ompl/geometric/planners/rrt/RRTstar.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/geometric/planners/prm/PRMstar.h>
+#include <ompl/geometric/planners/fmt/FMT.h>
 
 #include <ompl/util/PPM.h>
 #include <ompl/base/samplers/DeterministicStateSampler.h>
@@ -88,7 +89,7 @@ public:
                 // PRMstar can use the deterministic sampling
                 std::shared_ptr<og::PRMstar> PRMstar_ptr = std::make_shared<og::PRMstar>(ss_->getSpaceInformation());
                 // We can remove the random expansion strategy
-                PRMstar_ptr->setExpansionStrategy(true);
+                PRMstar_ptr->setExpansionStrategy(false);
                 // And decide to draw a maximum number of samples
                 PRMstar_ptr->setMaxSampleAttempts(5000);
                 ss_->setPlanner(PRMstar_ptr);

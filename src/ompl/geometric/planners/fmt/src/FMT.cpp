@@ -50,8 +50,7 @@
 #include <ompl/base/objectives/PathLengthOptimizationObjective.h>
 #include <ompl/geometric/planners/fmt/FMT.h>
 
-ompl::geometric::FMT::FMT(const base::SpaceInformationPtr &si)
-  : base::Planner(si, "FMT")
+ompl::geometric::FMT::FMT(const base::SpaceInformationPtr &si) : base::Planner(si, "FMT")
 {
     // An upper bound on the free space volume is the total space volume; the free fraction is estimated in sampleFree
     freeSpaceVolume_ = si_->getStateSpace()->getMeasure();
@@ -97,10 +96,7 @@ void ompl::geometric::FMT::setup()
 
         if (!nn_)
             nn_.reset(tools::SelfConfig::getDefaultNearestNeighbors<Motion *>(this));
-        nn_->setDistanceFunction([this](const Motion *a, const Motion *b)
-                                 {
-                                     return distanceFunction(a, b);
-                                 });
+        nn_->setDistanceFunction([this](const Motion *a, const Motion *b) { return distanceFunction(a, b); });
 
         if (nearestK_ && !nn_->reportsSortedResults())
         {
@@ -212,7 +208,7 @@ double ompl::geometric::FMT::calculateRadius(const unsigned int dimension, const
 void ompl::geometric::FMT::sampleFree(const base::PlannerTerminationCondition &ptc)
 {
     unsigned int nodeCount = 0;
-    unsigned int sampleAttempts = 0;
+    int sampleAttempts = 0;
     auto *motion = new Motion(si_);
 
     // Sample numSamples_ number of nodes from the free configuration space
@@ -230,10 +226,11 @@ void ompl::geometric::FMT::sampleFree(const base::PlannerTerminationCondition &p
             motion = new Motion(si_);
         }  // If collision free
 
-        if(maxSampleAttempts_ != -1 && sampleAttempts > static_cast<unsigned int>(maxSampleAttempts_)) {
-          break;
+        if (maxSampleAttempts_ != -1 && sampleAttempts > maxSampleAttempts_)
+        {
+            break;
         }
-    }      // While nodeCount < numSamples
+    }  // While nodeCount < numSamples
     si_->freeState(motion->getState());
     delete motion;
 
@@ -412,7 +409,7 @@ ompl::base::PlannerStatus ompl::geometric::FMT::solve(const base::PlannerTermina
                 //
                 // Our cost caches only increase in size, so they're only
                 // resized if they can't fit the current neighborhood
-                if ( costs.size() < yNear.size() )
+                if (costs.size() < yNear.size())
                 {
                     costs.resize(yNear.size());
                     incCosts.resize(yNear.size());
