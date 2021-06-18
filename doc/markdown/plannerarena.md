@@ -8,7 +8,7 @@ The OMPL Planner Arena code allows you to easily create plots from a benchmark d
 - On Ubuntu you need to run `sudo apt install libv8-dev`.
 - The following R packages: shinyjs, V8, tidyverse, Hmisc, pool, RSQLite, and markdown. These packages can be installed like so:
 
-      R -e "install.packages(c('shinyjs', 'V8', 'tidyverse', 'Hmisc', 'pool', 'RSQLite', 'markdown'), repos='http://cran.r-project.org')"
+      R -e "install.packages(c('shinyjs', 'V8', 'tidyverse', 'Hmisc', 'pool', 'RSQLite', 'markdown'), repos='https://cran.r-project.org')"
 
 ## Running
 
@@ -21,4 +21,4 @@ PlannerArena is also available as a Docker container. Once you have Docker insta
     docker pull mmoll/plannerarena
     docker run --rm -p 8888:8888 plannerarena
 
-Go to <http://127.0.0.1:8888> and upload your benchmark data.
+Go to <http://127.0.0.1:8888> and upload your benchmark data. If your benchmark database files exceed 50MB, set the environment variable `OMPL_PLANNERARENA_MAX_DB_SIZE` to the desired limit in bytes in the [Dockerfile for Planner Arena](https://github.com/ompl/ompl/blob/main/scripts/docker/plannerarena.Dockerfile) and rebuild the docker container.
